@@ -10,7 +10,7 @@ const script: Firebot.CustomScript<Params> = {
       name: "Mastodon Integration (by Oceanity)",
       description: "Mastodon functionality in Firebot",
       author: "Oceanity",
-      version: "1.0",
+      version: "0.1.0",
       firebotVersion: "5",
     };
   },
