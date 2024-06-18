@@ -108,6 +108,3 @@ dist
 
 # OS
 .DS_Store
-
-# Private details
-.integration-registration.json
