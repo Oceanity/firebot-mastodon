@@ -6,13 +6,8 @@ import { Entity } from "megalodon";
 
 type PostToMastodonData = {
   text: string;
+  cw?: string;
   postVisibility?: Entity.StatusVisibility;
-  embedType?: "none" | "link" | "image";
-  linkUrl?: string;
-  imageUrls?: string[];
-  sendAsReply?: boolean;
-  useCustomReplyToPostUri?: boolean;
-  replyToPostUri?: string;
 };
 
 export const PostToMastodonEffectType: Effects.EffectType<
@@ -39,9 +34,14 @@ export const PostToMastodonEffectType: Effects.EffectType<
       <firebot-input
         model="effect.text"
         use-text-area="true"
-        placeholder-text="Enter text"
+        placeholder-text="Status text"
         rows="4"
         cols="40"
+        style="margin-bottom: 20px;" 
+      />
+      <firebot-input
+        model="effect.cw"
+        placeholder-text="Content warning"
       />
     </eos-container>
     <eos-container header="Visibility" pad-top="true">
@@ -108,6 +108,7 @@ export const PostToMastodonEffectType: Effects.EffectType<
     try {
       await mastodonIntegration.client.postStatus(effect.text, {
         visibility: effect.postVisibility,
+        spoiler_text: effect.cw,
       });
     } catch (error) {
       logger.error(getErrorMessage(error), error);
