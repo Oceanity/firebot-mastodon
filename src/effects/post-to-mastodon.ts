@@ -13,7 +13,7 @@ type PostToMastodonData = {
 export const PostToMastodonEffectType: Effects.EffectType<
   PostToMastodonData,
   unknown,
-  { postUri: string }
+  { statusUri: string }
 > = {
   definition: {
     id: "post-to-mastodon",
@@ -25,7 +25,7 @@ export const PostToMastodonEffectType: Effects.EffectType<
       {
         label: "Post Uri",
         description: "The URI of the post",
-        defaultName: "postUri",
+        defaultName: "statusUri",
       },
     ],
   },
@@ -106,10 +106,19 @@ export const PostToMastodonEffectType: Effects.EffectType<
     }
 
     try {
-      await mastodonIntegration.client.postStatus(effect.text, {
-        visibility: effect.postVisibility,
-        spoiler_text: effect.cw,
-      });
+      const status = (
+        await mastodonIntegration.client.postStatus(effect.text, {
+          visibility: effect.postVisibility,
+          spoiler_text: effect.cw,
+        })
+      ).data as Entity.Status;
+
+      return {
+        success: true,
+        outputs: {
+          statusUri: status.uri,
+        },
+      };
     } catch (error) {
       logger.error(getErrorMessage(error), error);
       return {
