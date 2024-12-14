@@ -3,7 +3,7 @@ import * as packageJson from "../package.json";
 import { MastodonEvent, MastodonIntegrationSettings } from "./types";
 import { EventSource } from "@crowbartools/firebot-custom-scripts-types/types/modules/event-manager";
 import { Entity, NotificationType } from "megalodon";
-import { eventManager, logger } from "@oceanity/firebot-helpers/firebot";
+import { eventManager } from "@oceanity/firebot-helpers/firebot";
 import { getPostMetadata, getUserProfileMetadata } from "./utils/mastodon";
 import { mastodonIntegration } from "./mastodon-integration";
 
