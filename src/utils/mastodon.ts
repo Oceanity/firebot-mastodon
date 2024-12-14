@@ -17,7 +17,7 @@ export const getUserProfileMetadata = (
 
 export const getPostMetadata = (post: Entity.Status, prefix: string) => ({
   [`${prefix}Text`]: post.plain_content,
-  [`${prefix}Html`]: post.content,
+  [`${prefix}Html`]: replaceEmojisInHtml(post.content, post.emojis),
   [`${prefix}Uri`]: post.uri,
   [`${prefix}Url`]: post.url,
   [`${prefix}Id`]: post.id,
@@ -26,3 +26,13 @@ export const getPostMetadata = (post: Entity.Status, prefix: string) => ({
     ? getUserProfileMetadata(post.account, MASTODON_AUTHOR_VARIABLE_PREFIX)
     : {}),
 });
+
+export function replaceEmojisInHtml(html: string, emojis: Array<Entity.Emoji>) {
+  for (const emoji of emojis) {
+    html = html.replace(
+      `/:${emoji.shortcode}:/g`,
+      `<img class="emoji" alt="${emoji.shortcode}" src="${emoji.url}" />`
+    );
+  }
+  return html;
+}
