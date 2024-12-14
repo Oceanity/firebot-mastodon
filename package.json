@@ -1,8 +1,9 @@
 {
   "name": "firebot-mastodon-by-oceanity",
+  "displayName": "Mastodon (by Oceanity)",
   "scriptOutputName": "oceanityMastodonIntegration",
   "version": "0.1.0",
-  "description": "Adds Mastodon integration to Firebot",
+  "description": "Enables posting to Mastodon and adds events for follows, likes, replies, and boosts.\n\nOnce installed, head to the Integrations tab in Firebot settings to configure your Mastodon account.",
   "main": "",
   "scripts": {
     "build": "webpack",
@@ -13,23 +14,19 @@
   "author": "Oceanity",
   "license": "GNU3",
   "devDependencies": {
-    "@crowbartools/firebot-custom-scripts-types": "^5.60.1",
-    "@types/express": "^4.17.21",
+    "@crowbartools/firebot-custom-scripts-types": "^5.63.1",
+    "@oceanity/firebot-helpers": "^1.1.2",
     "@types/fs-extra": "^11.0.4",
-    "@types/he": "^1.2.3",
     "@types/jest": "^29.5.12",
     "@types/node": "^18.18.2",
     "@types/webpack": "^5.28.5",
     "@typescript-eslint/eslint-plugin": "^7.8.0",
     "@typescript-eslint/parser": "^7.8.0",
-    "css-loader": "^7.1.1",
+    "bufferutil": "^4.0.8",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "events": "^3.3.0",
-    "express": "^4.19.2",
     "fs-extra": "^11.2.0",
-    "fuse.js": "^7.0.0",
-    "he": "^1.2.0",
     "jest": "^29.7.0",
     "node-json-db": "^2.3.0",
     "terser-webpack-plugin": "^5.3.10",
@@ -37,11 +34,16 @@
     "ts-loader": "^9.5.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
+    "utf-8-validate": "^6.0.5",
     "webpack": "^5.89.0",
     "webpack-cli": "^5.1.4"
   },
   "volta": {
     "node": "18.18.2",
     "npm": "10.2.4"
+  },
+  "dependencies": {
+    "megalodon": "^10.0.5",
+    "tiny-typed-emitter": "^2.1.0"
   }
 }

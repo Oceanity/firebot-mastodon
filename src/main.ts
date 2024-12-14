@@ -1,29 +1,40 @@
-import { Firebot } from "@crowbartools/firebot-custom-scripts-types";
-import { initModules } from "./utils/firebot";
 import {
-  generateMastodonDefinition,
-  generateSpotifyIntegration,
-  mastodonScopes,
-} from "./mastodonIntegration";
-import { pathExists, readFile, writeFile } from "fs-extra";
-import { resolve } from "path";
-import { MastodonService } from "./utils/mastodon";
+  Firebot,
+  Integration,
+} from "@crowbartools/firebot-custom-scripts-types";
+import {
+  effectManager,
+  eventManager,
+  initModules,
+  integrationManager,
+} from "@oceanity/firebot-helpers/firebot";
+import { initMastodonIntegration } from "./mastodon-integration";
+import {
+  MASTODON_EVENT_SOURCE,
+  MASTODON_INTEGRATION_AUTHOR,
+  MASTODON_AUTHOR_VARIABLE_PREFIX,
+  MASTODON_INTEGRATION_DEFINITION,
+  MASTODON_INTEGRATION_DESCRIPTION,
+  MASTODON_INTEGRATION_ID,
+  MASTODON_INTEGRATION_NAME,
+  MASTODON_POST_VARIABLE_PREFIX,
+  MASTODON_INTEGRATION_VERSION,
+} from "./constants";
+import {
+  ReplaceVariableFactory,
+  VariableConfig,
+} from "@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-factory";
+import { ReplaceVariableManager } from "@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-manager";
+import { MastodonEvent, MastodonIntegrationSettings } from "./types";
+import { AllMastodonEffectTypes } from "./effects";
 
-export const integrationId = "oceanity-mastodon";
-export const localVersion = "0.1.0";
-export let mastodon: MastodonService;
-
-interface Params {
-  instance: string;
-}
-
-const script: Firebot.CustomScript<Params> = {
+const script: Firebot.CustomScript = {
   getScriptManifest: () => {
     return {
-      name: "Mastodon Integration (by Oceanity)",
-      description: "Mastodon functionality in Firebot",
-      author: "Oceanity",
-      version: localVersion,
+      name: MASTODON_INTEGRATION_NAME,
+      description: MASTODON_INTEGRATION_DESCRIPTION,
+      author: MASTODON_INTEGRATION_AUTHOR,
+      version: MASTODON_INTEGRATION_VERSION,
       firebotVersion: "5",
     };
   },
@@ -40,83 +51,122 @@ const script: Firebot.CustomScript<Params> = {
     };
   },
   run: async (runRequest) => {
-    const { instance } = runRequest.parameters;
-    const { integrationManager, logger } = runRequest.modules;
-    logger.info(runRequest.parameters.instance);
-
-    if (!instance) {
-      logger.error("Missing required Instance");
-      return;
-    }
-
     initModules(runRequest.modules);
 
-    let storedRegistrations;
+    eventManager.registerEventSource(MASTODON_EVENT_SOURCE);
 
-    const client: ClientCredentials = {
-      id: undefined,
-      secret: undefined,
+    registerMastodonVariables(
+      runRequest.modules.replaceVariableFactory,
+      runRequest.modules.replaceVariableManager
+    );
+
+    const integration: Integration<MastodonIntegrationSettings> = {
+      definition: MASTODON_INTEGRATION_DEFINITION,
+      integration: initMastodonIntegration(),
     };
 
-    const filePath = resolve(__dirname, "mastodonAppRegistrations.json");
-    if (await pathExists(filePath)) {
-      storedRegistrations = JSON.parse(
-        await readFile(filePath, "utf8")
-      ) as MastodonAppRegistrationFile;
+    integrationManager.registerIntegration(integration);
 
-      if (storedRegistrations[instance]) {
-        client.id = storedRegistrations[instance].client_id;
-        client.secret = storedRegistrations[instance].client_secret;
-      }
+    for (const effectType of AllMastodonEffectTypes) {
+      effectType.definition.id = `${MASTODON_INTEGRATION_ID}:${effectType.definition.id}`;
+      effectManager.registerEffect(effectType as any);
     }
-
-    if (!client.id || !client.secret) {
-      const response = await fetch(`https://${instance}/api/v1/apps`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          client_name: "Firebot",
-          redirect_uris: "http://localhost:7472/api/v1/auth/callback",
-          scopes: mastodonScopes.join(" "),
-          website: "https://oceanity.github.io",
-        }).toString(),
-      });
-
-      if (!response.ok) {
-        logger.error(
-          `Could not access app registration endpoint on ${instance}`
-        );
-        return;
-      }
-
-      const data = (await response.json()) as MastodonAppRegistration;
-
-      logger.info(JSON.stringify(data));
-
-      client.id = data.client_id;
-      client.secret = data.client_secret;
-
-      if (!storedRegistrations) storedRegistrations = {};
-
-      storedRegistrations[instance] = data;
-
-      await writeFile(filePath, JSON.stringify(storedRegistrations, null, 2));
-    }
-
-    const [definition, integration] = [
-      generateMastodonDefinition(instance, client),
-      generateSpotifyIntegration(instance),
-    ];
-
-    logger.info(JSON.stringify(definition));
-    logger.info(JSON.stringify(integration));
-
-    integrationManager.registerIntegration({ definition, integration });
-
-    mastodon = new MastodonService(instance);
   },
 };
+
+function registerMastodonVariables(
+  replaceVariableFactory: ReplaceVariableFactory,
+  replaceVariableManager: ReplaceVariableManager
+) {
+  const mastodonVariables = [
+    ...buildMastodonProfileVariables(
+      "mastodonUser",
+      [
+        MastodonEvent.Follow,
+        MastodonEvent.Like,
+        MastodonEvent.Boost,
+        MastodonEvent.Mention,
+        MastodonEvent.Reply,
+      ],
+      replaceVariableFactory
+    ),
+    ...buildMastodonPostVariables(
+      MASTODON_POST_VARIABLE_PREFIX,
+      [
+        MastodonEvent.Like,
+        MastodonEvent.Boost,
+        MastodonEvent.Mention,
+        MastodonEvent.Reply,
+      ],
+      replaceVariableFactory
+    ),
+  ];
+  for (const variable of mastodonVariables) {
+    replaceVariableManager.registerReplaceVariable(variable);
+  }
+}
+
+function buildMastodonProfileVariables(
+  prefix: string,
+  events: MastodonEvent[],
+  replaceVariableFactory: ReplaceVariableFactory
+) {
+  const profileProperties: Array<[property: string, description: string]> = [
+    ["Handle", "The users's handle"],
+    ["Username", "The user's username"],
+    ["DisplayName", "The user's display name"],
+    ["AvatarUrl", "The user's avatar URL"],
+    ["Bio", "The user's bio"],
+    ["BannerUrl", "The user's banner URL"],
+    ["Id", "The user's ID"],
+    ["CreatedAt", "The user's creation date"],
+  ];
+  return profileProperties.map(([property, description]) =>
+    replaceVariableFactory.createEventDataVariable(
+      buildMastodonVariable(`${prefix}${property}`, description, events)
+    )
+  );
+}
+
+function buildMastodonPostVariables(
+  prefix: string,
+  events: MastodonEvent[],
+  replaceVariableFactory: ReplaceVariableFactory
+) {
+  const postProperties: Array<[property: string, description: string]> = [
+    ["Text", "The post's text"],
+    ["Html", "The post's HTML"],
+    ["Uri", "The post's URI"],
+    ["Url", "The post's URL"],
+    ["Id", "The post's ID"],
+    ["CreatedAt", "The post's creation date"],
+  ];
+  return [
+    ...postProperties.map(([property, description]) =>
+      replaceVariableFactory.createEventDataVariable(
+        buildMastodonVariable(`${prefix}${property}`, description, events)
+      )
+    ),
+    ...buildMastodonProfileVariables(
+      MASTODON_AUTHOR_VARIABLE_PREFIX,
+      events,
+      replaceVariableFactory
+    ),
+  ];
+}
+
+function buildMastodonVariable(
+  eventProperty: string,
+  description: string,
+  events: MastodonEvent[]
+): VariableConfig {
+  return {
+    handle: eventProperty,
+    description: description,
+    events: events.map((event) => `${MASTODON_INTEGRATION_ID}:${event}`),
+    eventMetaKey: eventProperty,
+    type: "text",
+  };
+}
 
 export default script;
