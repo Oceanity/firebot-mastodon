@@ -2,7 +2,7 @@
   "name": "firebot-mastodon-by-oceanity",
   "displayName": "Mastodon (by Oceanity)",
   "scriptOutputName": "oceanityMastodonIntegration",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Enables posting to Mastodon and adds events for follows, likes, replies, and boosts.\n\nOnce installed, head to the Integrations tab in Firebot settings to configure your Mastodon account.",
   "main": "",
   "scripts": {
