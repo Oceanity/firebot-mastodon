@@ -3,30 +3,30 @@ import {
   Integration,
 } from "@crowbartools/firebot-custom-scripts-types";
 import {
+  ReplaceVariableFactory,
+  VariableConfig,
+} from "@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-factory";
+import { ReplaceVariableManager } from "@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-manager";
+import {
   effectManager,
   eventManager,
   initModules,
   integrationManager,
 } from "@oceanity/firebot-helpers/firebot";
-import { initMastodonIntegration } from "./mastodon-integration";
 import {
+  MASTODON_AUTHOR_VARIABLE_PREFIX,
   MASTODON_EVENT_SOURCE,
   MASTODON_INTEGRATION_AUTHOR,
-  MASTODON_AUTHOR_VARIABLE_PREFIX,
   MASTODON_INTEGRATION_DEFINITION,
   MASTODON_INTEGRATION_DESCRIPTION,
   MASTODON_INTEGRATION_ID,
   MASTODON_INTEGRATION_NAME,
-  MASTODON_POST_VARIABLE_PREFIX,
   MASTODON_INTEGRATION_VERSION,
+  MASTODON_POST_VARIABLE_PREFIX,
 } from "./constants";
-import {
-  ReplaceVariableFactory,
-  VariableConfig,
-} from "@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-factory";
-import { ReplaceVariableManager } from "@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-manager";
-import { MastodonEvent, MastodonIntegrationSettings } from "./types";
 import { AllMastodonEffectTypes } from "./effects";
+import { initMastodonIntegration } from "./mastodon-integration";
+import { MastodonEvent, MastodonIntegrationSettings } from "./types";
 
 const script: Firebot.CustomScript = {
   getScriptManifest: () => {
@@ -38,18 +38,7 @@ const script: Firebot.CustomScript = {
       firebotVersion: "5",
     };
   },
-  getDefaultParameters: () => {
-    return {
-      instance: {
-        type: "string",
-        default: "mastodon.social",
-        description: "Instance Name",
-        required: true,
-        secondaryDescription:
-          "Enter the Mastodon instance you want to authorize on",
-      },
-    };
-  },
+  getDefaultParameters: () => ({}),
   run: async (runRequest) => {
     initModules(runRequest.modules);
 
@@ -116,6 +105,7 @@ function buildMastodonProfileVariables(
     ["Username", "The user's username"],
     ["DisplayName", "The user's display name"],
     ["AvatarUrl", "The user's avatar URL"],
+    ["BioHtml", "The user's bio with HTML formatting"],
     ["Bio", "The user's bio"],
     ["BannerUrl", "The user's banner URL"],
     ["Id", "The user's ID"],

@@ -1,11 +1,14 @@
 import { IntegrationDefinition } from "@crowbartools/firebot-custom-scripts-types";
-import * as packageJson from "../package.json";
-import { MastodonEvent, MastodonIntegrationSettings } from "./types";
 import { EventSource } from "@crowbartools/firebot-custom-scripts-types/types/modules/event-manager";
-import { Entity, NotificationType } from "megalodon";
 import { eventManager } from "@oceanity/firebot-helpers/firebot";
-import { getPostMetadata, getUserProfileMetadata } from "./utils/mastodon";
+import { Entity, NotificationType } from "megalodon";
+import * as packageJson from "../package.json";
 import { mastodonIntegration } from "./mastodon-integration";
+import { MastodonEvent, MastodonIntegrationSettings } from "./types";
+import {
+  getPostMetadata,
+  getUserProfileMetadata,
+} from "./utils/mastodon-helpers";
 
 export const {
   displayName: MASTODON_INTEGRATION_NAME,
@@ -23,9 +26,8 @@ export const MASTODON_AUTHOR_VARIABLE_PREFIX = `${MASTODON_POST_VARIABLE_PREFIX}
 export const MASTODON_INTEGRATION_DEFINITION: IntegrationDefinition<MastodonIntegrationSettings> =
   {
     id: MASTODON_INTEGRATION_ID,
-    name: "Mastodon (by Oceanity)",
-    description:
-      "Enables posting to Mastodon and adds events for follows, likes, replies and boosts",
+    name: MASTODON_INTEGRATION_NAME,
+    description: MASTODON_INTEGRATION_DESCRIPTION,
     linkType: "none",
     configurable: true,
     connectionToggle: false,
