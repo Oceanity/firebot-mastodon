@@ -126,12 +126,9 @@ class MastodonIntegration
     });
 
     this._stream.on("notification", (event: Entity.Notification) => {
-      if (
-        this.isInEventCache(
-          `${event.type}:${event.status?.id}`,
-          event.account.id
-        )
-      ) {
+      const key = [event.type, event.status?.id].filter((e) => !!e).join(":");
+
+      if (this.isInEventCache(key, event.account.id)) {
         logger.info(
           "Skipping duplicate notification event",
           event.type,
