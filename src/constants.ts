@@ -20,8 +20,10 @@ export const {
 export const MASTODON_INTEGRATION_ID = "oceanity:mastodon";
 export const MASTODON_INTEGRATION_FIREBOT_VERSION = "5";
 export const MASTODON_POST_VARIABLE_PREFIX = "mastodonPost";
+export const MASTODON_STATUS_VARIABLE_PREFIX = "mastodonStatus";
 export const MASTODON_USER_VARIABLE_PREFIX = "mastodonUser";
-export const MASTODON_AUTHOR_VARIABLE_PREFIX = `${MASTODON_POST_VARIABLE_PREFIX}Author`;
+export const MASTODON_POST_AUTHOR_VARIABLE_PREFIX = `${MASTODON_POST_VARIABLE_PREFIX}Author`;
+export const MASTODON_STATUS_AUTHOR_VARIABLE_PREFIX = `${MASTODON_STATUS_VARIABLE_PREFIX}Author`;
 
 export const MASTODON_INTEGRATION_DEFINITION: IntegrationDefinition<MastodonIntegrationSettings> =
   {

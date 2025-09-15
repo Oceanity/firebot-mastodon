@@ -2,6 +2,7 @@ import {
   Firebot,
   Integration,
 } from "@crowbartools/firebot-custom-scripts-types";
+import { EventFilter } from "@crowbartools/firebot-custom-scripts-types/types/modules/event-filter-manager";
 import {
   ReplaceVariableFactory,
   VariableConfig,
@@ -9,12 +10,12 @@ import {
 import { ReplaceVariableManager } from "@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-manager";
 import {
   effectManager,
+  eventFilterManager,
   eventManager,
   initModules,
   integrationManager,
 } from "@oceanity/firebot-helpers/firebot";
 import {
-  MASTODON_AUTHOR_VARIABLE_PREFIX,
   MASTODON_EVENT_SOURCE,
   MASTODON_INTEGRATION_AUTHOR,
   MASTODON_INTEGRATION_DEFINITION,
@@ -22,11 +23,20 @@ import {
   MASTODON_INTEGRATION_ID,
   MASTODON_INTEGRATION_NAME,
   MASTODON_INTEGRATION_VERSION,
+  MASTODON_POST_AUTHOR_VARIABLE_PREFIX,
   MASTODON_POST_VARIABLE_PREFIX,
+  MASTODON_STATUS_AUTHOR_VARIABLE_PREFIX,
+  MASTODON_STATUS_VARIABLE_PREFIX,
 } from "./constants";
 import { AllMastodonEffectTypes } from "./effects";
+import { AllMastodonEventFilters } from "./filters";
 import { initMastodonIntegration } from "./mastodon-integration";
-import { MastodonEvent, MastodonIntegrationSettings } from "./types";
+import {
+  MastodonEvent,
+  MastodonIntegrationSettings,
+  MastodonStatusVariable,
+  MastodonUserVariable,
+} from "./types";
 
 const script: Firebot.CustomScript = {
   getScriptManifest: () => {
@@ -48,6 +58,10 @@ const script: Firebot.CustomScript = {
       runRequest.modules.replaceVariableFactory,
       runRequest.modules.replaceVariableManager
     );
+
+    for (const filter of AllMastodonEventFilters) {
+      eventFilterManager.registerFilter(filter as EventFilter);
+    }
 
     const integration: Integration<MastodonIntegrationSettings> = {
       definition: MASTODON_INTEGRATION_DEFINITION,
@@ -80,7 +94,7 @@ function registerMastodonVariables(
       replaceVariableFactory
     ),
     ...buildMastodonPostVariables(
-      MASTODON_POST_VARIABLE_PREFIX,
+      [MASTODON_STATUS_VARIABLE_PREFIX, MASTODON_POST_VARIABLE_PREFIX],
       [
         MastodonEvent.Like,
         MastodonEvent.Boost,
@@ -96,49 +110,74 @@ function registerMastodonVariables(
 }
 
 function buildMastodonProfileVariables(
-  prefix: string,
+  prefix: string | string[],
   events: MastodonEvent[],
   replaceVariableFactory: ReplaceVariableFactory
 ) {
+  if (!Array.isArray(prefix)) {
+    prefix = [prefix];
+  }
+
   const profileProperties: Array<[property: string, description: string]> = [
-    ["Handle", "The users's handle"],
-    ["Username", "The user's username"],
-    ["DisplayName", "The user's display name"],
-    ["AvatarUrl", "The user's avatar URL"],
-    ["BioHtml", "The user's bio with HTML formatting"],
-    ["Bio", "The user's bio"],
-    ["BannerUrl", "The user's banner URL"],
-    ["Id", "The user's ID"],
-    ["CreatedAt", "The user's creation date"],
+    [MastodonUserVariable.Handle, "The users's handle"],
+    [MastodonUserVariable.Username, "The user's username"],
+    [MastodonUserVariable.DisplayName, "The user's display name"],
+    [MastodonUserVariable.AvatarUrl, "The user's avatar URL"],
+    [MastodonUserVariable.BioHtml, "The user's bio with HTML formatting"],
+    [MastodonUserVariable.Bio, "The user's bio"],
+    [MastodonUserVariable.BannerUrl, "The user's banner URL"],
+    [MastodonUserVariable.Id, "The user's ID"],
+    [MastodonUserVariable.CreatedAt, "The user's creation date"],
   ];
+
   return profileProperties.map(([property, description]) =>
     replaceVariableFactory.createEventDataVariable(
-      buildMastodonVariable(`${prefix}${property}`, description, events)
+      buildMastodonVariable(
+        prefix.map((p) => `${p}${property}`),
+        description,
+        events
+      )
     )
   );
 }
 
 function buildMastodonPostVariables(
-  prefix: string,
+  prefix: string | string[],
   events: MastodonEvent[],
   replaceVariableFactory: ReplaceVariableFactory
 ) {
+  if (!Array.isArray(prefix)) {
+    prefix = [prefix];
+  }
+
   const postProperties: Array<[property: string, description: string]> = [
-    ["Text", "The post's text"],
-    ["Html", "The post's HTML"],
-    ["Uri", "The post's URI"],
-    ["Url", "The post's URL"],
-    ["Id", "The post's ID"],
-    ["CreatedAt", "The post's creation date"],
+    [MastodonStatusVariable.Text, "The status's text"],
+    [MastodonStatusVariable.Html, "The status's Html"],
+    [MastodonStatusVariable.Uri, "The status's Uri"],
+    [MastodonStatusVariable.Url, "The status's Url"],
+    [MastodonStatusVariable.Id, "The status's id"],
+    [MastodonStatusVariable.CreatedAt, "The status's creation date"],
+    [
+      MastodonStatusVariable.InReplyToId,
+      "The id of the status being replied to (or `$null` if the status is not a reply)",
+    ],
   ];
+
   return [
     ...postProperties.map(([property, description]) =>
       replaceVariableFactory.createEventDataVariable(
-        buildMastodonVariable(`${prefix}${property}`, description, events)
+        buildMastodonVariable(
+          prefix.map((p) => `${p}${property}`),
+          description,
+          events
+        )
       )
     ),
     ...buildMastodonProfileVariables(
-      MASTODON_AUTHOR_VARIABLE_PREFIX,
+      [
+        MASTODON_STATUS_AUTHOR_VARIABLE_PREFIX,
+        MASTODON_POST_AUTHOR_VARIABLE_PREFIX,
+      ],
       events,
       replaceVariableFactory
     ),
@@ -146,16 +185,23 @@ function buildMastodonPostVariables(
 }
 
 function buildMastodonVariable(
-  eventProperty: string,
+  eventProperty: string | string[],
   description: string,
   events: MastodonEvent[]
-): VariableConfig {
+): VariableConfig & { aliases?: string[] } {
+  if (!Array.isArray(eventProperty)) {
+    eventProperty = [eventProperty];
+  }
+
+  const mainProperty = eventProperty.shift();
+
   return {
-    handle: eventProperty,
+    handle: mainProperty,
     description: description,
     events: events.map((event) => `${MASTODON_INTEGRATION_ID}:${event}`),
-    eventMetaKey: eventProperty,
+    eventMetaKey: mainProperty,
     type: "text",
+    aliases: eventProperty,
   };
 }
 

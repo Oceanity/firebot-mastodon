@@ -1,21 +1,27 @@
-import { eventManager, logger } from "@oceanity/firebot-helpers/firebot";
-import { getErrorMessage } from "@oceanity/firebot-helpers/string";
 import {
   IntegrationController,
   IntegrationData,
   IntegrationEvents,
 } from "@crowbartools/firebot-custom-scripts-types";
-import { TypedEmitter } from "tiny-typed-emitter";
+import { eventManager, logger } from "@oceanity/firebot-helpers/firebot";
+import { getErrorMessage } from "@oceanity/firebot-helpers/string";
 import generator, {
   Entity,
   MegalodonInterface,
+  NotificationType,
   WebSocketInterface,
 } from "megalodon";
+import { TypedEmitter } from "tiny-typed-emitter";
 import {
   MASTODON_INTEGRATION_ID,
-  MASTODON_NOTIFICATION_HANDLERS,
+  MASTODON_STATUS_VARIABLE_PREFIX,
+  MASTODON_USER_VARIABLE_PREFIX,
 } from "./constants";
 import { MastodonEvent, MastodonIntegrationSettings } from "./types";
+import {
+  getPostMetadata,
+  getUserProfileMetadata,
+} from "./utils/mastodon-helpers";
 
 class IntegrationEventEmitter extends TypedEmitter<IntegrationEvents> {}
 
@@ -28,9 +34,12 @@ class MastodonIntegration
   public client: MegalodonInterface | undefined;
   public me: Entity.Account | undefined;
   private _stream: WebSocketInterface | undefined;
+  private readonly _eventCache: Record<string, string[]>;
 
   constructor() {
     super();
+
+    this._eventCache = {};
   }
 
   init(
@@ -108,31 +117,107 @@ class MastodonIntegration
       logger.info("Mastodon Integration connected!");
     });
 
-    this._stream.on("update", (status: Entity.Status) => {
-      logger.info(
-        "Unsupported status update type",
-        status.account.acct,
-        status.plain_content
+    this._stream.on("update", async (status: Entity.Status) => {
+      eventManager.triggerEvent(
+        MASTODON_INTEGRATION_ID,
+        MastodonEvent.NewStatus,
+        {
+          ...(await getUserProfileMetadata(
+            status.account,
+            MASTODON_USER_VARIABLE_PREFIX
+          )),
+          ...(await getPostMetadata(status, MASTODON_STATUS_VARIABLE_PREFIX)),
+        }
       );
     });
 
-    this._stream.on("notification", (event: Entity.Notification) => {
-      logger.info(
-        "Mastodon notification event",
-        event.type,
-        event.account.acct,
-        event.status?.id ?? "no status"
-      );
-      if (MASTODON_NOTIFICATION_HANDLERS[event.type]) {
-        MASTODON_NOTIFICATION_HANDLERS[event.type](event);
+    this._stream.on("notification", async (event: Entity.Notification) => {
+      const key = [event.type, event.status?.id].filter((e) => !!e).join(":");
+
+      if (this.isInEventCache(key, event.account.id)) {
+        logger.info(
+          `Skipping duplicate ${event.type} notification event from account ${
+            event.account.id
+          }${!!event.status?.id ? ` on status ${event.status.id}` : ""}`
+        );
         return;
       }
 
-      logger.info("Unsupported notification type", event.type);
+      switch (event.type) {
+        case NotificationType.Follow:
+          eventManager.triggerEvent(
+            MASTODON_INTEGRATION_ID,
+            MastodonEvent.Follow,
+            {
+              ...(await getUserProfileMetadata(
+                event.account,
+                MASTODON_USER_VARIABLE_PREFIX
+              )),
+            }
+          );
+          break;
+
+        case NotificationType.Favourite:
+          eventManager.triggerEvent(
+            MASTODON_INTEGRATION_ID,
+            MastodonEvent.Like,
+            {
+              ...(await getUserProfileMetadata(
+                event.account,
+                MASTODON_USER_VARIABLE_PREFIX
+              )),
+              ...(await getPostMetadata(
+                event.status,
+                MASTODON_STATUS_VARIABLE_PREFIX
+              )),
+            }
+          );
+          break;
+
+        case NotificationType.Reblog:
+          eventManager.triggerEvent(
+            MASTODON_INTEGRATION_ID,
+            MastodonEvent.Boost,
+            {
+              ...(await getUserProfileMetadata(
+                event.account,
+                MASTODON_USER_VARIABLE_PREFIX
+              )),
+              ...(await getPostMetadata(
+                event.status,
+                MASTODON_STATUS_VARIABLE_PREFIX
+              )),
+            }
+          );
+          break;
+
+        case NotificationType.Mention:
+          eventManager.triggerEvent(
+            MASTODON_INTEGRATION_ID,
+            event.status?.in_reply_to_account_id === mastodonIntegration?.me?.id
+              ? MastodonEvent.Reply
+              : MastodonEvent.Mention,
+            {
+              ...(await getUserProfileMetadata(
+                event.account,
+                MASTODON_USER_VARIABLE_PREFIX
+              )),
+              ...(await getPostMetadata(
+                event.status,
+                MASTODON_STATUS_VARIABLE_PREFIX
+              )),
+            }
+          );
+          break;
+
+        default:
+          logger.warn("Unsupported notification type", event.type);
+          break;
+      }
     });
 
     this._stream.on("delete", (id: number) => {
-      logger.info(id.toString());
+      logger.info(`Post deleted: ${id.toString()}`);
     });
 
     this._stream.on("error", (err: Error) => {
@@ -152,6 +237,17 @@ class MastodonIntegration
       logger.error(err.message);
     });
   }
+  private isInEventCache = (key: string, value: string): boolean => {
+    if (!this._eventCache[key]) {
+      this._eventCache[key] = [];
+    }
+
+    const isInCache = this._eventCache[key].some((v) => v === value);
+
+    this._eventCache[key].push(value);
+
+    return isInCache;
+  };
 }
 
 export let mastodonIntegration: MastodonIntegration | undefined;

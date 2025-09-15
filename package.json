@@ -14,8 +14,8 @@
   "author": "Oceanity",
   "license": "GNU3",
   "devDependencies": {
-    "@crowbartools/firebot-custom-scripts-types": "^5.63.1",
-    "@oceanity/firebot-helpers": "^1.1.2",
+    "@crowbartools/firebot-custom-scripts-types": "^5.63.2",
+    "@oceanity/firebot-helpers": "^1.1.6",
     "@types/fs-extra": "^11.0.4",
     "@types/html-to-text": "^9.0.4",
     "@types/jest": "^29.5.12",
