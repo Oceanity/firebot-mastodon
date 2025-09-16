@@ -92,6 +92,7 @@ function registerMastodonVariables(
         MastodonEvent.Boost,
         MastodonEvent.Mention,
         MastodonEvent.Reply,
+        MastodonEvent.NewStatus,
       ],
       replaceVariableFactory
     ),
@@ -102,6 +103,7 @@ function registerMastodonVariables(
         MastodonEvent.Boost,
         MastodonEvent.Mention,
         MastodonEvent.Reply,
+        MastodonEvent.NewStatus,
       ],
       replaceVariableFactory
     ),

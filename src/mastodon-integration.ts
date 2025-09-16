@@ -31,9 +31,10 @@ class MastodonIntegration
 {
   connected = false;
 
-  public client: MegalodonInterface | undefined;
-  public me: Entity.Account | undefined;
-  private _stream: WebSocketInterface | undefined;
+  public instance: string;
+  public client: MegalodonInterface;
+  public me: Entity.Account;
+  private _stream: WebSocketInterface;
   private readonly _eventCache: Record<string, string[]>;
 
   constructor() {
@@ -83,22 +84,21 @@ class MastodonIntegration
       }
     }
 
-    const instanceType = settings?.account?.instanceType;
-    const baseUrl = settings?.account?.baseUrl;
-    const accessToken = settings?.account?.accessToken;
+    const { instanceType, baseUrl, accessToken } = settings?.account;
 
     if (!baseUrl || !accessToken) {
       logger.warn("Mastodon Integration account credentials are missing");
       return;
     }
 
-    logger.info("initMastodonBot");
+    logger.info("Initializing Mastodon integration...");
 
     // Initial connection
     try {
+      this.instance = baseUrl;
       this.client = generator(
         instanceType ?? "mastodon",
-        `https://${baseUrl}`,
+        `https://${this.instance}`,
         accessToken
       );
       this._stream = await this.client.userStreaming();

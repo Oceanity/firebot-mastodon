@@ -17,7 +17,9 @@ export async function getUserProfileMetadata(
   prefix: string
 ) {
   return {
-    [`${prefix}${MastodonUserVariable.Handle}`]: profile.acct,
+    [`${prefix}${MastodonUserVariable.Handle}`]: getFullMastodonHandle(
+      profile.acct
+    ),
     [`${prefix}${MastodonUserVariable.Username}`]: profile.username,
     [`${prefix}${MastodonUserVariable.DisplayName}`]: profile.display_name,
     [`${prefix}${MastodonUserVariable.AvatarUrl}`]: profile.avatar,
@@ -63,7 +65,7 @@ export async function getPostMetadata(post: Entity.Status, prefix: string) {
     [`${prefix}${MastodonStatusVariable.InReplyToUserId}`]:
       post.in_reply_to_account_id,
     [`${prefix}${MastodonStatusVariable.InReplyToUserHandle}`]:
-      getMastodonHandleFromAccountUrl(additionalProps.in_reply_to?.url),
+      getFullMastodonHandle(additionalProps.in_reply_to?.acct),
     ...(post.account
       ? getUserProfileMetadata(
           post.account,
@@ -94,3 +96,8 @@ export function getMastodonHandleFromAccountUrl(url?: string) {
 
   return match ? `${match[2]}@${match[1]}` : null;
 }
+
+const getFullMastodonHandle = (handle?: string) =>
+  !handle || handle.includes("@")
+    ? handle
+    : `${handle}@${mastodonIntegration.instance}`;
