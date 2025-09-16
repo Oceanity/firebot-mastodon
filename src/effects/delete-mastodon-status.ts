@@ -1,59 +1,30 @@
 import { Effects } from "@crowbartools/firebot-custom-scripts-types/types/effects";
 import { logger } from "@oceanity/firebot-helpers/firebot";
 import { getErrorMessage } from "@oceanity/firebot-helpers/string";
-import { Entity } from "megalodon";
 import { mastodonIntegration } from "../mastodon-integration";
 
-type PostToMastodonProps = {
-  text: string;
-  cw?: string;
-  postVisibility?: Entity.StatusVisibility;
+type DeleteMastodonProps = {
+  statusId: string;
 };
 
-export const PostToMastodonEffectType: Effects.EffectType<
-  PostToMastodonProps,
-  unknown,
-  { statusUri: string }
+export const DeleteMastodonStatusEffectType: Effects.EffectType<
+  DeleteMastodonProps,
+  unknown
 > = {
   definition: {
-    id: "post-to-mastodon",
-    name: "Post to Mastodon",
-    description: "Posts a message to your Mastodon account",
-    icon: "fad fa-at",
+    id: "delete-mastodon-status",
+    name: "Delete Mastodon Status",
+    description: "Deletes a status from your Mastodon account",
+    icon: "fad fa-trash-alt",
     categories: ["integrations"],
-    outputs: [
-      {
-        label: "Post Uri",
-        description: "The URI of the post",
-        defaultName: "statusUri",
-      },
-    ],
   },
   optionsTemplate: `
-    <eos-container header="Text"> 
+    <eos-container header="Status Id"> 
       <firebot-input
-        model="effect.text"
-        use-text-area="true"
-        placeholder-text="Status text"
-        rows="4"
-        cols="40"
+        model="effect.statusId"
+        placeholder-text="Status Id to delete"
         style="margin-bottom: 20px;" 
       />
-      <firebot-input
-        model="effect.cw"
-        placeholder-text="Content warning"
-      />
-    </eos-container>
-    <eos-container header="Visibility" pad-top="true">
-      <div class="form-group">
-        <firebot-radio-cards
-          options="postVisibilityOptions"
-          ng-model="effect.postVisibility"
-          id="postVisibilityOptions"
-          name="postVisibilityOptions"
-          grid-columns="2"
-        ></firebot-radio-cards>
-      </div>
     </eos-container>
   `,
   optionsController: ($scope) => {
@@ -85,7 +56,7 @@ export const PostToMastodonEffectType: Effects.EffectType<
     ];
   },
   optionsValidator: (effect) => {
-    if (!effect.text?.length) {
+    if (!effect.statusId?.length) {
       return ["Please enter some text to post!"];
     }
   },
@@ -105,19 +76,15 @@ export const PostToMastodonEffectType: Effects.EffectType<
       };
     }
 
+    const { statusId } = effect;
+
     try {
-      const status = (
-        await mastodonIntegration.client.postStatus(effect.text, {
-          visibility: effect.postVisibility,
-          spoiler_text: effect.cw,
-        })
-      ).data as Entity.Status;
+      const response = await mastodonIntegration.client.deleteStatus(statusId);
+
+      logger.info(JSON.stringify(response));
 
       return {
         success: true,
-        outputs: {
-          statusUri: status.uri,
-        },
       };
     } catch (error) {
       logger.error(getErrorMessage(error), error);
@@ -129,9 +96,9 @@ export const PostToMastodonEffectType: Effects.EffectType<
 };
 
 function validateEffect(
-  data: PostToMastodonProps
+  data: DeleteMastodonProps
 ): [success: boolean, errorMessage?: string] {
-  if (!data.text?.length) {
+  if (!data.statusId?.length) {
     return [false, "No text provided"];
   }
 
