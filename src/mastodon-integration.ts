@@ -14,7 +14,7 @@ import generator, {
 import { TypedEmitter } from "tiny-typed-emitter";
 import {
   MASTODON_INTEGRATION_ID,
-  MASTODON_POST_VARIABLE_PREFIX,
+  MASTODON_STATUS_VARIABLE_PREFIX,
   MASTODON_USER_VARIABLE_PREFIX,
 } from "./constants";
 import { MastodonEvent, MastodonIntegrationSettings } from "./types";
@@ -31,15 +31,16 @@ class MastodonIntegration
 {
   connected = false;
 
-  public client: MegalodonInterface | undefined;
-  public me: Entity.Account | undefined;
-  private _stream: WebSocketInterface | undefined;
-  private readonly _eventsCache: Record<string, Array<string>>;
+  public instance: string;
+  public client: MegalodonInterface;
+  public me: Entity.Account;
+  private _stream: WebSocketInterface;
+  private readonly _eventCache: Record<string, string[]>;
 
   constructor() {
     super();
 
-    this._eventsCache = {};
+    this._eventCache = {};
   }
 
   init(
@@ -83,22 +84,21 @@ class MastodonIntegration
       }
     }
 
-    const instanceType = settings?.account?.instanceType;
-    const baseUrl = settings?.account?.baseUrl;
-    const accessToken = settings?.account?.accessToken;
+    const { instanceType, baseUrl, accessToken } = settings?.account;
 
     if (!baseUrl || !accessToken) {
       logger.warn("Mastodon Integration account credentials are missing");
       return;
     }
 
-    logger.info("initMastodonBot");
+    logger.info("Initializing Mastodon integration...");
 
     // Initial connection
     try {
+      this.instance = baseUrl;
       this.client = generator(
         instanceType ?? "mastodon",
-        `https://${baseUrl}`,
+        `https://${this.instance}`,
         accessToken
       );
       this._stream = await this.client.userStreaming();
@@ -117,23 +117,28 @@ class MastodonIntegration
       logger.info("Mastodon Integration connected!");
     });
 
-    this._stream.on("update", (status: Entity.Status) => {
-      logger.info(
-        "Unsupported status update type",
-        status.account.acct,
-        status.plain_content
+    this._stream.on("update", async (status: Entity.Status) => {
+      eventManager.triggerEvent(
+        MASTODON_INTEGRATION_ID,
+        MastodonEvent.NewStatus,
+        {
+          ...(await getUserProfileMetadata(
+            status.account,
+            MASTODON_USER_VARIABLE_PREFIX
+          )),
+          ...(await getPostMetadata(status, MASTODON_STATUS_VARIABLE_PREFIX)),
+        }
       );
     });
 
-    this._stream.on("notification", (event: Entity.Notification) => {
+    this._stream.on("notification", async (event: Entity.Notification) => {
       const key = [event.type, event.status?.id].filter((e) => !!e).join(":");
 
       if (this.isInEventCache(key, event.account.id)) {
         logger.info(
-          "Skipping duplicate notification event",
-          event.type,
-          event.status?.id,
-          event.account.id
+          `Skipping duplicate ${event.type} notification event from account ${
+            event.account.id
+          }${!!event.status?.id ? ` on status ${event.status.id}` : ""}`
         );
         return;
       }
@@ -144,10 +149,10 @@ class MastodonIntegration
             MASTODON_INTEGRATION_ID,
             MastodonEvent.Follow,
             {
-              ...getUserProfileMetadata(
+              ...(await getUserProfileMetadata(
                 event.account,
                 MASTODON_USER_VARIABLE_PREFIX
-              ),
+              )),
             }
           );
           break;
@@ -157,11 +162,14 @@ class MastodonIntegration
             MASTODON_INTEGRATION_ID,
             MastodonEvent.Like,
             {
-              ...getUserProfileMetadata(
+              ...(await getUserProfileMetadata(
                 event.account,
                 MASTODON_USER_VARIABLE_PREFIX
-              ),
-              ...getPostMetadata(event.status, MASTODON_POST_VARIABLE_PREFIX),
+              )),
+              ...(await getPostMetadata(
+                event.status,
+                MASTODON_STATUS_VARIABLE_PREFIX
+              )),
             }
           );
           break;
@@ -171,11 +179,14 @@ class MastodonIntegration
             MASTODON_INTEGRATION_ID,
             MastodonEvent.Boost,
             {
-              ...getUserProfileMetadata(
+              ...(await getUserProfileMetadata(
                 event.account,
                 MASTODON_USER_VARIABLE_PREFIX
-              ),
-              ...getPostMetadata(event.status, MASTODON_POST_VARIABLE_PREFIX),
+              )),
+              ...(await getPostMetadata(
+                event.status,
+                MASTODON_STATUS_VARIABLE_PREFIX
+              )),
             }
           );
           break;
@@ -187,11 +198,14 @@ class MastodonIntegration
               ? MastodonEvent.Reply
               : MastodonEvent.Mention,
             {
-              ...getUserProfileMetadata(
+              ...(await getUserProfileMetadata(
                 event.account,
                 MASTODON_USER_VARIABLE_PREFIX
-              ),
-              ...getPostMetadata(event.status, MASTODON_POST_VARIABLE_PREFIX),
+              )),
+              ...(await getPostMetadata(
+                event.status,
+                MASTODON_STATUS_VARIABLE_PREFIX
+              )),
             }
           );
           break;
@@ -203,7 +217,7 @@ class MastodonIntegration
     });
 
     this._stream.on("delete", (id: number) => {
-      logger.info(id.toString());
+      logger.info(`Post deleted: ${id.toString()}`);
     });
 
     this._stream.on("error", (err: Error) => {
@@ -223,17 +237,16 @@ class MastodonIntegration
       logger.error(err.message);
     });
   }
-
-  private isInEventCache = (key: string, user: string): boolean => {
-    if (!this._eventsCache[key]) {
-      this._eventsCache[key] = [];
+  private isInEventCache = (key: string, value: string): boolean => {
+    if (!this._eventCache[key]) {
+      this._eventCache[key] = [];
     }
 
-    const isCached = this._eventsCache[key].some((u) => u === user);
+    const isInCache = this._eventCache[key].some((v) => v === value);
 
-    this._eventsCache[key].push(user);
+    this._eventCache[key].push(value);
 
-    return isCached;
+    return isInCache;
   };
 }
 
