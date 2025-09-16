@@ -1,14 +1,7 @@
 import { IntegrationDefinition } from "@crowbartools/firebot-custom-scripts-types";
 import { EventSource } from "@crowbartools/firebot-custom-scripts-types/types/modules/event-manager";
-import { eventManager } from "@oceanity/firebot-helpers/firebot";
-import { Entity, NotificationType } from "megalodon";
 import * as packageJson from "../package.json";
-import { mastodonIntegration } from "./mastodon-integration";
 import { MastodonEvent, MastodonIntegrationSettings } from "./types";
-import {
-  getPostMetadata,
-  getUserProfileMetadata,
-} from "./utils/mastodon-helpers";
 
 export const {
   displayName: MASTODON_INTEGRATION_NAME,
@@ -17,6 +10,7 @@ export const {
   version: MASTODON_INTEGRATION_VERSION,
 } = packageJson;
 
+export const MASTODON_INTEGRATION_NAME_AND_AUTHOR = `${MASTODON_INTEGRATION_NAME} (by ${MASTODON_INTEGRATION_AUTHOR})`;
 export const MASTODON_INTEGRATION_ID = "oceanity:mastodon";
 export const MASTODON_INTEGRATION_FIREBOT_VERSION = "5";
 export const MASTODON_POST_VARIABLE_PREFIX = "mastodonPost";
@@ -92,39 +86,4 @@ export const MASTODON_EVENT_SOURCE: EventSource = {
       description: "When someone mentions you on Mastodon",
     },
   ],
-};
-
-export const MASTODON_NOTIFICATION_HANDLERS = {
-  [NotificationType.Follow]: (event: Entity.Notification) => {
-    eventManager.triggerEvent(MASTODON_INTEGRATION_ID, MastodonEvent.Follow, {
-      ...getUserProfileMetadata(event.account, MASTODON_USER_VARIABLE_PREFIX),
-    });
-  },
-  [NotificationType.Favourite]: (event: Entity.Notification) => {
-    eventManager.triggerEvent(MASTODON_INTEGRATION_ID, MastodonEvent.Like, {
-      ...getUserProfileMetadata(event.account, MASTODON_USER_VARIABLE_PREFIX),
-      ...getPostMetadata(event.status, MASTODON_POST_VARIABLE_PREFIX),
-    });
-  },
-  [NotificationType.Reblog]: (event: Entity.Notification) => {
-    eventManager.triggerEvent(MASTODON_INTEGRATION_ID, MastodonEvent.Boost, {
-      ...getUserProfileMetadata(event.account, MASTODON_USER_VARIABLE_PREFIX),
-      ...getPostMetadata(event.status, MASTODON_POST_VARIABLE_PREFIX),
-    });
-  },
-  [NotificationType.Mention]: async (event: Entity.Notification) => {
-    // If it was in reply to one of your statuses
-    if (event.status?.in_reply_to_account_id === mastodonIntegration?.me?.id) {
-      eventManager.triggerEvent(MASTODON_INTEGRATION_ID, MastodonEvent.Reply, {
-        ...getUserProfileMetadata(event.account, MASTODON_USER_VARIABLE_PREFIX),
-        ...getPostMetadata(event.status, MASTODON_POST_VARIABLE_PREFIX),
-      });
-      return;
-    }
-    // If it was just a random mention
-    eventManager.triggerEvent(MASTODON_INTEGRATION_ID, MastodonEvent.Mention, {
-      ...getUserProfileMetadata(event.account, MASTODON_USER_VARIABLE_PREFIX),
-      ...getPostMetadata(event.status, MASTODON_POST_VARIABLE_PREFIX),
-    });
-  },
 };
