@@ -85,5 +85,10 @@ export const MASTODON_EVENT_SOURCE: EventSource = {
       name: "Mention",
       description: "When someone mentions you on Mastodon",
     },
+    {
+      id: MastodonEvent.NewStatus,
+      name: "New Status",
+      description: "When a new status is posted to the timeline",
+    },
   ],
 };
