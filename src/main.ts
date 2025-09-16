@@ -19,10 +19,12 @@ import {
   MASTODON_INTEGRATION_AUTHOR,
   MASTODON_INTEGRATION_DEFINITION,
   MASTODON_INTEGRATION_DESCRIPTION,
+  MASTODON_INTEGRATION_FIREBOT_VERSION,
   MASTODON_INTEGRATION_ID,
-  MASTODON_INTEGRATION_NAME,
+  MASTODON_INTEGRATION_NAME_AND_AUTHOR,
   MASTODON_INTEGRATION_VERSION,
   MASTODON_POST_VARIABLE_PREFIX,
+  MASTODON_USER_VARIABLE_PREFIX,
 } from "./constants";
 import { AllMastodonEffectTypes } from "./effects";
 import { initMastodonIntegration } from "./mastodon-integration";
@@ -31,11 +33,11 @@ import { MastodonEvent, MastodonIntegrationSettings } from "./types";
 const script: Firebot.CustomScript = {
   getScriptManifest: () => {
     return {
-      name: MASTODON_INTEGRATION_NAME,
+      name: MASTODON_INTEGRATION_NAME_AND_AUTHOR,
       description: MASTODON_INTEGRATION_DESCRIPTION,
       author: MASTODON_INTEGRATION_AUTHOR,
       version: MASTODON_INTEGRATION_VERSION,
-      firebotVersion: "5",
+      firebotVersion: MASTODON_INTEGRATION_FIREBOT_VERSION,
     };
   },
   getDefaultParameters: () => ({}),
@@ -69,7 +71,7 @@ function registerMastodonVariables(
 ) {
   const mastodonVariables = [
     ...buildMastodonProfileVariables(
-      "mastodonUser",
+      MASTODON_USER_VARIABLE_PREFIX,
       [
         MastodonEvent.Follow,
         MastodonEvent.Like,
