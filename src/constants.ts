@@ -87,8 +87,8 @@ export const MASTODON_EVENT_SOURCE: EventSource = {
     },
     {
       id: MastodonEvent.NewStatus,
-      name: "New Status",
-      description: "When a new status is posted to the timeline",
+      name: "New Status Posted",
+      description: "When a new status is posted to the local timeline",
     },
   ],
 };
