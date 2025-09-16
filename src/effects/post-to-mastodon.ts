@@ -1,24 +1,24 @@
-import { logger } from "@oceanity/firebot-helpers/firebot";
-import { mastodonIntegration } from "../mastodon-integration";
 import { Effects } from "@crowbartools/firebot-custom-scripts-types/types/effects";
+import { logger } from "@oceanity/firebot-helpers/firebot";
 import { getErrorMessage } from "@oceanity/firebot-helpers/string";
 import { Entity } from "megalodon";
+import { mastodonIntegration } from "../mastodon-integration";
 
-type PostToMastodonData = {
+type PostToMastodonProps = {
   text: string;
   cw?: string;
   postVisibility?: Entity.StatusVisibility;
 };
 
 export const PostToMastodonEffectType: Effects.EffectType<
-  PostToMastodonData,
+  PostToMastodonProps,
   unknown,
   { statusUri: string }
 > = {
   definition: {
     id: "post-to-mastodon",
     name: "Post to Mastodon",
-    description: "Posts a message to a Mastodon account",
+    description: "Posts a message to your Mastodon account",
     icon: "fad fa-at",
     categories: ["integrations"],
     outputs: [
@@ -129,7 +129,7 @@ export const PostToMastodonEffectType: Effects.EffectType<
 };
 
 function validateEffect(
-  data: PostToMastodonData
+  data: PostToMastodonProps
 ): [success: boolean, errorMessage?: string] {
   if (!data.text?.length) {
     return [false, "No text provided"];

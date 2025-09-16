@@ -58,8 +58,3 @@ export enum MastodonStatusVariable {
   InReplyToUserHandle = "InReplyToUserHandle",
   InReplyToUserDisplayName = "InReplyToUserDisplayName",
 }
-
-export const MastodonComparisonType = Object.freeze({
-  Is: "is",
-  IsNot: "is not",
-});
