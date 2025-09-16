@@ -27,34 +27,6 @@ export const DeleteMastodonStatusEffectType: Effects.EffectType<
       />
     </eos-container>
   `,
-  optionsController: ($scope) => {
-    $scope.postVisibilityOptions = [
-      {
-        value: "public",
-        label: "Public",
-        description: "Visible for all",
-        iconClass: "fa-globe",
-      },
-      {
-        value: "unlisted",
-        label: "Unlisted",
-        description: "Visible for all, but opted-out of discovery",
-        iconClass: "fa-unlock",
-      },
-      {
-        value: "private",
-        label: "Followers only",
-        description: "Visible for followers only",
-        iconClass: "fa-lock",
-      },
-      {
-        value: "direct",
-        label: "Direct",
-        description: "Visible for mentioned users only",
-        iconClass: "fa-at",
-      },
-    ];
-  },
   optionsValidator: (effect) => {
     if (!effect.statusId?.length) {
       return ["Please enter some text to post!"];
@@ -63,7 +35,10 @@ export const DeleteMastodonStatusEffectType: Effects.EffectType<
   onTriggerEvent: async ({ effect }) => {
     const [valid, reason] = validateEffect(effect);
     if (!valid) {
-      logger.debug(`Unable to run Post To Mastodon effect: ${reason}`, effect);
+      logger.debug(
+        `Unable to run Delete Mastodon Status effect: ${reason}`,
+        effect
+      );
       return {
         success: false,
       };
@@ -79,9 +54,7 @@ export const DeleteMastodonStatusEffectType: Effects.EffectType<
     const { statusId } = effect;
 
     try {
-      const response = await mastodonIntegration.client.deleteStatus(statusId);
-
-      logger.info(JSON.stringify(response));
+      await mastodonIntegration.client.deleteStatus(statusId);
 
       return {
         success: true,
@@ -99,7 +72,7 @@ function validateEffect(
   data: DeleteMastodonProps
 ): [success: boolean, errorMessage?: string] {
   if (!data.statusId?.length) {
-    return [false, "No text provided"];
+    return [false, "No Status Id provided"];
   }
 
   return [true];
