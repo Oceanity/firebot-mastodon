@@ -54,10 +54,10 @@ export const DeleteMastodonStatusEffectType: Effects.EffectType<
     const { statusId } = effect;
 
     try {
-      await mastodonIntegration.client.deleteStatus(statusId);
+      const response = await mastodonIntegration.client.deleteStatus(statusId);
 
       return {
-        success: true,
+        success: response.status === 200,
       };
     } catch (error) {
       logger.error(getErrorMessage(error), error);
