@@ -34,8 +34,7 @@ const plugin: Plugin<Params> = {
     icon: {
       type: "custom",
       url: MASTODON_PLUGIN_ICON_DATA_URI,
-      backgroundColor:
-        "linear-gradient(180deg,rgba(99, 100, 255, 1) 0%, rgba(86, 58, 204, 1) 100%)",
+      backgroundColor: "linear-gradient(180deg,#6364ff,#563acc)",
     },
     author: MASTODON_PLUGIN_AUTHOR,
     version: MASTODON_PLUGIN_VERSION,
