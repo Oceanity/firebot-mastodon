@@ -1,5 +1,4 @@
 import firebot, { EffectType } from "@crowbartools/firebot-types";
-import { getErrorMessage } from "@oceanity/firebot-helpers/string";
 import { mastodon } from "../main";
 
 type EffectModel = {
@@ -44,7 +43,7 @@ export const DeleteMastodonStatusEffectType: EffectType<EffectModel> = {
         success: true,
       };
     } catch (error) {
-      firebot.logger.error(getErrorMessage(error), error);
+      firebot.logger.error("Error deleting Mastodon status", error);
 
       return {
         success: false,

@@ -1,25 +1,18 @@
-import { convert } from "html-to-text";
-// import { Entity } from "megalodon";
-// import {
-//   MASTODON_INTEGRATION_ID,
-//   MASTODON_STATUS_AUTHOR_VARIABLE_PREFIX,
-// } from "../constants";
-// import { mastodonIntegration } from "../mastodon-integration";
 import { EventSourceAndId } from "@crowbartools/firebot-types";
+import { convert } from "html-to-text";
 import {
   Account,
   CustomEmoji,
   Status,
 } from "masto/mastodon/entities/v1/index.js";
 import {
-  MASTODON_INTEGRATION_ID,
+  MASTODON_PLUGIN_ID,
   MASTODON_STATUS_AUTHOR_VARIABLE_PREFIX,
 } from "../constants";
 import { mastodon } from "../main";
 import {
   MastodonAdditionalProperties,
   MastodonEvent,
-  // MastodonEvent,
   MastodonStatusVariable,
   MastodonUserVariable,
 } from "../types";
@@ -95,7 +88,7 @@ export function replaceEmojisInHtml(html: string, emojis: Array<CustomEmoji>) {
 export const getMastodonEventSourceAndId = (
   eventId: MastodonEvent,
 ): EventSourceAndId => ({
-  eventSourceId: MASTODON_INTEGRATION_ID,
+  eventSourceId: MASTODON_PLUGIN_ID,
   eventId,
 });
 

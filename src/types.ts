@@ -1,4 +1,13 @@
 import { Account } from "masto/mastodon/entities/v1/index.js";
+import { Client as RestClient } from "masto/mastodon/rest/client.js";
+import { Client as StreamingClient } from "masto/mastodon/streaming/client.js";
+
+export interface MastodonState {
+  restClient: RestClient | null;
+  streamingClient: StreamingClient | null;
+  account: Account | null;
+  instanceUrl: URL | null;
+}
 
 export type MastodonAdditionalProperties = {
   inReplyTo?: Account;

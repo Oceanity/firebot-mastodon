@@ -1,28 +1,19 @@
 import firebot, { Plugin, PluginContext } from "@crowbartools/firebot-types";
 import { createRestAPIClient, createStreamingAPIClient } from "masto";
-import { Client as RestClient } from "masto/mastodon/rest/client.js";
 
-import { Account } from "masto/mastodon/entities/v1/account.js";
-import { Client as StreamingClient } from "masto/mastodon/streaming/client.js";
 import {
   MASTODON_EVENT_SOURCE,
-  MASTODON_INTEGRATION_AUTHOR,
-  MASTODON_INTEGRATION_DESCRIPTION,
-  MASTODON_INTEGRATION_NAME,
-  MASTODON_INTEGRATION_VERSION,
+  MASTODON_PLUGIN_AUTHOR,
+  MASTODON_PLUGIN_DESCRIPTION,
   MASTODON_PLUGIN_ICON_DATA_URI,
+  MASTODON_PLUGIN_NAME,
+  MASTODON_PLUGIN_VERSION,
 } from "./constants";
 import { AllMastodonEffectTypes } from "./effects";
 import { hookMastodonFirebotEvents } from "./event-handler";
 import { AllMastodonEventFilters } from "./filters";
 import { AllMastodonReplaceVariables } from "./replace-variables";
-
-export interface MastodonState {
-  restClient: RestClient | null;
-  streamingClient: StreamingClient | null;
-  account: Account | null;
-  instanceUrl: URL | null;
-}
+import { MastodonState } from "./types";
 
 export let mastodon: MastodonState = {
   restClient: null,
@@ -38,16 +29,16 @@ type Params = {
 
 const plugin: Plugin<Params> = {
   manifest: {
-    name: MASTODON_INTEGRATION_NAME,
-    description: MASTODON_INTEGRATION_DESCRIPTION,
+    name: MASTODON_PLUGIN_NAME,
+    description: MASTODON_PLUGIN_DESCRIPTION,
     icon: {
       type: "custom",
       url: MASTODON_PLUGIN_ICON_DATA_URI,
       backgroundColor:
         "linear-gradient(180deg,rgba(99, 100, 255, 1) 0%, rgba(86, 58, 204, 1) 100%)",
     },
-    author: MASTODON_INTEGRATION_AUTHOR,
-    version: MASTODON_INTEGRATION_VERSION,
+    author: MASTODON_PLUGIN_AUTHOR,
+    version: MASTODON_PLUGIN_VERSION,
   },
   parametersSchema: [
     {

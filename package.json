@@ -2,7 +2,7 @@
   "name": "firebot-mastodon",
   "displayName": "Mastodon",
   "pluginOutputName": "oceanityMastodon",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "A Firebot Plugin that enables posting to Mastodon and adds events for follows, likes, replies, and boosts.",
   "main": "",
   "scripts": {
@@ -15,19 +15,17 @@
   "license": "GPL-3.0",
   "devDependencies": {
     "@crowbartools/firebot-types": "^5.67.0-alpha20",
-    "@oceanity/firebot-helpers": "^1.1.6",
     "@types/html-to-text": "^9.0.4",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.0",
-    "html-to-text": "^9.0.5",
+    "html-to-text": "^10.0.0",
     "jest": "^30.4.2",
     "masto": "^7.11.1",
     "ts-jest": "^29.4.11",
-    "tsdown": "^0.22.1",
+    "tsdown": "^0.22.2",
     "typescript": "^5.9.3"
   },
   "volta": {
-    "node": "18.18.2",
-    "npm": "10.2.4"
+    "node": "24.10.0"
   }
 }

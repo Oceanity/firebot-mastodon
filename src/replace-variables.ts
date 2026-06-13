@@ -4,7 +4,7 @@ import firebot, {
 } from "@crowbartools/firebot-types";
 import {
   MASTODON_DELETE_VARIABLE,
-  MASTODON_INTEGRATION_ID,
+  MASTODON_PLUGIN_ID,
   MASTODON_POST_AUTHOR_VARIABLE_PREFIX,
   MASTODON_POST_VARIABLE_PREFIX,
   MASTODON_STATUS_AUTHOR_VARIABLE_PREFIX,
@@ -139,7 +139,7 @@ function buildMastodonVariable(
   return {
     handle: mainProperty,
     description: description,
-    events: events.map((event) => `${MASTODON_INTEGRATION_ID}:${event}`),
+    events: events.map((event) => `${MASTODON_PLUGIN_ID}:${event}`),
     eventMetaKey: mainProperty,
     type: "text",
     aliases: eventProperty,

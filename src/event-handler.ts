@@ -4,7 +4,7 @@ import { Status } from "masto/mastodon/entities/v1/status.js";
 import { Client as StreamingClient } from "masto/mastodon/streaming/client.js";
 import {
   MASTODON_DELETE_VARIABLE,
-  MASTODON_INTEGRATION_ID,
+  MASTODON_PLUGIN_ID,
   MASTODON_STATUS_VARIABLE_PREFIX,
   MASTODON_USER_VARIABLE_PREFIX,
 } from "./constants";
@@ -48,60 +48,13 @@ export const hookMastodonFirebotEvents = async (
   //         );
   //         return;
   //       }
-
-  //       switch (event.type) {
-
-  //         case NotificationType.Mention:
-  //           eventManager.triggerEvent(
-  //             MASTODON_INTEGRATION_ID,
-  //             event.status?.in_reply_to_account_id === mastodonIntegration?.me?.id
-  //               ? MastodonEvent.Reply
-  //               : MastodonEvent.Mention,
-  //             {
-  //               ...(await getUserProfileMetadata(
-  //                 event.account,
-  //                 MASTODON_USER_VARIABLE_PREFIX,
-  //               )),
-  //               ...(await getPostMetadata(
-  //                 event.status,
-  //                 MASTODON_STATUS_VARIABLE_PREFIX,
-  //               )),
-  //             },
-  //           );
-  //           break;
-
-  //         default:
-  //           firebot.logger.warn("Unsupported notification type", event.type);
-  //           break;
-  //       }
-  //     });
-
-  //     this._stream.on("delete", (id: number) => {
-  //       firebot.logger.info(`Post deleted: ${id.toString()}`);
-  //     });
-
-  //     this._stream.on("error", (err: Error) => {
-  //       firebot.logger.error(err.message);
-  //     });
-
-  //     this._stream.on("heartbeat", () => {
-  //       firebot.logger.info("Mastodon heartbeat received");
-  //     });
-
-  //     this._stream.on("close", () => {
-  //       this.connected = false;
-  //       firebot.logger.info("Connection to Mastodon closed");
-  //     });
-
-  //     this._stream.on("parser-error", (err: Error) => {
-  //       firebot.logger.error(err.message);
   //     });
 };
 
 const handleNotificationPayload = async (notification: Notification) => {
   switch (notification.type) {
     case "favourite": {
-      firebot.events.trigger(MASTODON_INTEGRATION_ID, MastodonEvent.Like, {
+      firebot.events.trigger(MASTODON_PLUGIN_ID, MastodonEvent.Like, {
         ...(await getUserProfileMetadata(
           notification.account,
           MASTODON_USER_VARIABLE_PREFIX,
@@ -116,7 +69,7 @@ const handleNotificationPayload = async (notification: Notification) => {
     }
 
     case "follow": {
-      firebot.events.trigger(MASTODON_INTEGRATION_ID, MastodonEvent.Follow, {
+      firebot.events.trigger(MASTODON_PLUGIN_ID, MastodonEvent.Follow, {
         ...(await getUserProfileMetadata(
           notification.account,
           MASTODON_USER_VARIABLE_PREFIX,
@@ -127,7 +80,7 @@ const handleNotificationPayload = async (notification: Notification) => {
     }
 
     case "reblog": {
-      firebot.events.trigger(MASTODON_INTEGRATION_ID, MastodonEvent.Boost, {
+      firebot.events.trigger(MASTODON_PLUGIN_ID, MastodonEvent.Boost, {
         ...(await getUserProfileMetadata(
           notification.account,
           MASTODON_USER_VARIABLE_PREFIX,
@@ -143,7 +96,7 @@ const handleNotificationPayload = async (notification: Notification) => {
 
     case "mention": {
       firebot.events.trigger(
-        MASTODON_INTEGRATION_ID,
+        MASTODON_PLUGIN_ID,
         notification.status?.inReplyToAccountId === mastodon.account?.id
           ? MastodonEvent.Reply
           : MastodonEvent.Mention,
@@ -163,7 +116,7 @@ const handleNotificationPayload = async (notification: Notification) => {
 };
 
 const handleUpdatePayload = async (status: Status) => {
-  firebot.events.trigger(MASTODON_INTEGRATION_ID, MastodonEvent.NewStatus, {
+  firebot.events.trigger(MASTODON_PLUGIN_ID, MastodonEvent.NewStatus, {
     ...(await getUserProfileMetadata(
       status.account,
       MASTODON_USER_VARIABLE_PREFIX,
@@ -173,7 +126,7 @@ const handleUpdatePayload = async (status: Status) => {
 };
 
 const handleDeletePayload = async (statusId: string) => {
-  firebot.events.trigger(MASTODON_INTEGRATION_ID, MastodonEvent.Delete, {
+  firebot.events.trigger(MASTODON_PLUGIN_ID, MastodonEvent.Delete, {
     [MASTODON_DELETE_VARIABLE]: statusId,
   });
 };
