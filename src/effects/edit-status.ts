@@ -1,18 +1,19 @@
-import { Effects } from "@crowbartools/firebot-custom-scripts-types/types/effects";
-import { logger } from "@oceanity/firebot-helpers/firebot";
-import { getErrorMessage } from "@oceanity/firebot-helpers/string";
-import { mastodonIntegration } from "../mastodon-integration";
+import firebot, { EffectType } from "@crowbartools/firebot-types";
+import { mastodon } from "../main";
 
-type EditMastodonStatusProps = {
+type EffectModel = {
   statusId: string;
   text: string;
   cw?: string;
 };
 
-export const EditMastodonStatusEffectType: Effects.EffectType<
-  EditMastodonStatusProps,
-  unknown,
-  { statusUri: string }
+type OverlayData = {
+  statusUri: string;
+};
+
+export const EditMastodonStatusEffectType: EffectType<
+  EffectModel,
+  OverlayData
 > = {
   definition: {
     id: "edit-mastodon-status",
@@ -56,7 +57,7 @@ export const EditMastodonStatusEffectType: Effects.EffectType<
     </eos-container>
   `,
   optionsValidator: (effect) => {
-    const errors: string[] = [];
+    const errors: Array<string> = [];
     if (!effect.statusId) {
       errors.push("Please enter a Status Id to edit!");
     }
@@ -66,52 +67,26 @@ export const EditMastodonStatusEffectType: Effects.EffectType<
     return errors;
   },
   onTriggerEvent: async ({ effect }) => {
-    const [valid, reason] = validateEffect(effect);
-    if (!valid) {
-      logger.debug(
-        `Unable to run Edit Mastodon Status effect: ${reason}`,
-        effect
-      );
-      return {
-        success: false,
-      };
-    }
-
-    if (!mastodonIntegration?.client) {
-      logger.error("Mastodon client not initialized");
-      return {
-        success: false,
-      };
-    }
-    const { statusId, text, cw } = effect;
-
     try {
-      const response = await mastodonIntegration.client.editStatus(statusId, {
+      if (!mastodon.restClient) {
+        throw new Error("Mastodon client not initialized");
+      }
+
+      const { statusId, text, cw } = effect;
+
+      await mastodon.restClient.v1.statuses.$select(statusId).update({
         status: text,
-        spoiler_text: cw,
+        spoilerText: cw,
       });
 
       return {
-        success: response.status === 200,
+        success: true,
       };
     } catch (error) {
-      logger.error(getErrorMessage(error), error);
+      firebot.logger.error("Could not edit status", error);
       return {
         success: false,
       };
     }
   },
 };
-
-function validateEffect(
-  data: EditMastodonStatusProps
-): [success: boolean, errorMessage?: string] {
-  if (!data.statusId) {
-    return [false, "No Status Id provided"];
-  }
-  if (!data.text?.length) {
-    return [false, "No text provided"];
-  }
-
-  return [true];
-}

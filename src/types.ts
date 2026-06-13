@@ -1,20 +1,7 @@
-import { Account } from "megalodon/lib/esm/entities/account";
-
-export type MastodonIntegrationSettings = {
-  account: {
-    instanceType?:
-      | "mastodon"
-      | "pleroma"
-      | "friendica"
-      | "firefish"
-      | "gotosocial";
-    baseUrl: string;
-    accessToken: string;
-  };
-};
+import { Account } from "masto/mastodon/entities/v1/index.js";
 
 export type MastodonAdditionalProperties = {
-  in_reply_to?: Account;
+  inReplyTo?: Account;
 };
 
 export enum MastodonEvent {
@@ -24,6 +11,7 @@ export enum MastodonEvent {
   Mention = "mention",
   Reply = "reply",
   NewStatus = "new-status",
+  Delete = "delete",
 }
 
 export enum MastodonFilter {

@@ -1,51 +1,58 @@
 import { convert } from "html-to-text";
-import { Entity } from "megalodon";
+// import { Entity } from "megalodon";
+// import {
+//   MASTODON_INTEGRATION_ID,
+//   MASTODON_STATUS_AUTHOR_VARIABLE_PREFIX,
+// } from "../constants";
+// import { mastodonIntegration } from "../mastodon-integration";
+import { EventSourceAndId } from "@crowbartools/firebot-types";
+import {
+  Account,
+  CustomEmoji,
+  Status,
+} from "masto/mastodon/entities/v1/index.js";
 import {
   MASTODON_INTEGRATION_ID,
   MASTODON_STATUS_AUTHOR_VARIABLE_PREFIX,
 } from "../constants";
-import { mastodonIntegration } from "../mastodon-integration";
+import { mastodon } from "../main";
 import {
   MastodonAdditionalProperties,
   MastodonEvent,
+  // MastodonEvent,
   MastodonStatusVariable,
   MastodonUserVariable,
 } from "../types";
 
-export async function getUserProfileMetadata(
-  profile: Entity.Account,
-  prefix: string
-) {
+export async function getUserProfileMetadata(profile: Account, prefix: string) {
   return {
-    [`${prefix}${MastodonUserVariable.Handle}`]: getFullMastodonHandle(
-      profile.acct
-    ),
+    [`${prefix}${MastodonUserVariable.Handle}`]: profile.acct,
     [`${prefix}${MastodonUserVariable.Username}`]: profile.username,
-    [`${prefix}${MastodonUserVariable.DisplayName}`]: profile.display_name,
+    [`${prefix}${MastodonUserVariable.DisplayName}`]: profile.displayName,
     [`${prefix}${MastodonUserVariable.AvatarUrl}`]: profile.avatar,
     [`${prefix}${MastodonUserVariable.BioHtml}`]: replaceEmojisInHtml(
       profile.note,
-      profile.emojis
+      profile.emojis,
     ),
     [`${prefix}${MastodonUserVariable.Bio}`]: convert(profile.note, {
       selectors: [{ selector: "a", options: { ignoreHref: true } }],
     }),
     [`${prefix}${MastodonUserVariable.BannerUrl}`]: profile.header,
     [`${prefix}${MastodonUserVariable.Id}`]: profile.id,
-    [`${prefix}${MastodonUserVariable.CreatedAt}`]: profile.created_at,
+    [`${prefix}${MastodonUserVariable.CreatedAt}`]: profile.createdAt,
   };
 }
 
-export async function getPostMetadata(post: Entity.Status, prefix: string) {
+export async function getPostMetadata(post: Status, prefix: string) {
   const additionalProps: MastodonAdditionalProperties = {};
 
-  if (post.in_reply_to_account_id) {
-    const response = await mastodonIntegration.client.getAccount(
-      post.in_reply_to_account_id
-    );
+  if (post.inReplyToAccountId) {
+    const account = await mastodon.restClient?.v1.accounts
+      .$select(post.inReplyToAccountId)
+      .fetch();
 
-    if (response.status === 200 && response.data) {
-      additionalProps.in_reply_to = response.data;
+    if (account) {
+      additionalProps.inReplyTo = account;
     }
   }
 
@@ -55,49 +62,53 @@ export async function getPostMetadata(post: Entity.Status, prefix: string) {
     }),
     [`${prefix}${MastodonStatusVariable.Html}`]: replaceEmojisInHtml(
       post.content,
-      post.emojis
+      post.emojis,
     ),
     [`${prefix}${MastodonStatusVariable.Uri}`]: post.uri,
     [`${prefix}${MastodonStatusVariable.Url}`]: post.url,
     [`${prefix}${MastodonStatusVariable.Id}`]: post.id,
-    [`${prefix}${MastodonStatusVariable.CreatedAt}`]: post.created_at,
-    [`${prefix}${MastodonStatusVariable.InReplyToId}`]: post.in_reply_to_id,
+    [`${prefix}${MastodonStatusVariable.CreatedAt}`]: post.createdAt,
+    [`${prefix}${MastodonStatusVariable.InReplyToId}`]: post.inReplyToId,
     [`${prefix}${MastodonStatusVariable.InReplyToUserId}`]:
-      post.in_reply_to_account_id,
+      post.inReplyToAccountId,
     [`${prefix}${MastodonStatusVariable.InReplyToUserHandle}`]:
-      getFullMastodonHandle(additionalProps.in_reply_to?.acct),
+      getFullMastodonHandle(additionalProps.inReplyTo?.acct),
     ...(post.account
-      ? getUserProfileMetadata(
+      ? await getUserProfileMetadata(
           post.account,
-          MASTODON_STATUS_AUTHOR_VARIABLE_PREFIX
+          MASTODON_STATUS_AUTHOR_VARIABLE_PREFIX,
         )
       : {}),
   };
 }
 
-export function replaceEmojisInHtml(html: string, emojis: Array<Entity.Emoji>) {
+export function replaceEmojisInHtml(html: string, emojis: Array<CustomEmoji>) {
   for (const emoji of emojis) {
     html = html.replace(
       new RegExp(`:${emoji.shortcode}:`, "g"),
-      `<img class="emoji" alt="${emoji.shortcode}" src="${emoji.url}" />`
+      `<img class="emoji" alt="${emoji.shortcode}" src="${emoji.url}" />`,
     );
   }
   return html;
 }
 
-export const getMastodonFilterEvent = (eventId: MastodonEvent) => ({
+export const getMastodonEventSourceAndId = (
+  eventId: MastodonEvent,
+): EventSourceAndId => ({
   eventSourceId: MASTODON_INTEGRATION_ID,
   eventId,
 });
 
-export function getMastodonHandleFromAccountUrl(url?: string) {
+export function getMastodonHandleFromAccountUrl(
+  url?: string,
+): string | undefined {
   const regex = /^https?:\/\/([^\/]+)\/@([^\/?#]+)/;
   const match = url?.match(regex);
 
-  return match ? `${match[2]}@${match[1]}` : null;
+  return match ? `${match[2]}@${match[1]}` : undefined;
 }
 
 const getFullMastodonHandle = (handle?: string) =>
-  !handle || handle.includes("@")
+  !handle || handle.includes("@") || !mastodon.instanceUrl
     ? handle
-    : `${handle}@${mastodonIntegration.instance}`;
+    : `${handle}@${mastodon.instanceUrl.hostname}`;

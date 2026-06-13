@@ -1,212 +1,141 @@
-import {
-  Firebot,
-  Integration,
-} from "@crowbartools/firebot-custom-scripts-types";
-import { EventFilter } from "@crowbartools/firebot-custom-scripts-types/types/modules/event-filter-manager";
-import {
-  ReplaceVariableFactory,
-  VariableConfig,
-} from "@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-factory";
-import { ReplaceVariableManager } from "@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-manager";
-import {
-  effectManager,
-  eventFilterManager,
-  eventManager,
-  initModules,
-  integrationManager,
-} from "@oceanity/firebot-helpers/firebot";
+import firebot, { Plugin, PluginContext } from "@crowbartools/firebot-types";
+import { createRestAPIClient, createStreamingAPIClient } from "masto";
+import { Client as RestClient } from "masto/mastodon/rest/client.js";
+
+import { Account } from "masto/mastodon/entities/v1/account.js";
+import { Client as StreamingClient } from "masto/mastodon/streaming/client.js";
 import {
   MASTODON_EVENT_SOURCE,
   MASTODON_INTEGRATION_AUTHOR,
-  MASTODON_INTEGRATION_DEFINITION,
   MASTODON_INTEGRATION_DESCRIPTION,
-  MASTODON_INTEGRATION_FIREBOT_VERSION,
-  MASTODON_INTEGRATION_ID,
-  MASTODON_INTEGRATION_NAME_AND_AUTHOR,
+  MASTODON_INTEGRATION_NAME,
   MASTODON_INTEGRATION_VERSION,
-  MASTODON_POST_AUTHOR_VARIABLE_PREFIX,
-  MASTODON_POST_VARIABLE_PREFIX,
-  MASTODON_STATUS_AUTHOR_VARIABLE_PREFIX,
-  MASTODON_STATUS_VARIABLE_PREFIX,
-  MASTODON_USER_VARIABLE_PREFIX,
+  MASTODON_PLUGIN_ICON_DATA_URI,
 } from "./constants";
 import { AllMastodonEffectTypes } from "./effects";
+import { hookMastodonFirebotEvents } from "./event-handler";
 import { AllMastodonEventFilters } from "./filters";
-import { initMastodonIntegration } from "./mastodon-integration";
-import {
-  MastodonEvent,
-  MastodonIntegrationSettings,
-  MastodonStatusVariable,
-  MastodonUserVariable,
-} from "./types";
+import { AllMastodonReplaceVariables } from "./replace-variables";
 
-const script: Firebot.CustomScript = {
-  getScriptManifest: () => {
-    return {
-      name: MASTODON_INTEGRATION_NAME_AND_AUTHOR,
-      description: MASTODON_INTEGRATION_DESCRIPTION,
-      author: MASTODON_INTEGRATION_AUTHOR,
-      version: MASTODON_INTEGRATION_VERSION,
-      firebotVersion: MASTODON_INTEGRATION_FIREBOT_VERSION,
-    };
+export interface MastodonState {
+  restClient: RestClient | null;
+  streamingClient: StreamingClient | null;
+  account: Account | null;
+  instanceUrl: URL | null;
+}
+
+export let mastodon: MastodonState = {
+  restClient: null,
+  streamingClient: null,
+  account: null,
+  instanceUrl: null,
+};
+
+type Params = {
+  instanceUrl: string;
+  accessToken: string;
+};
+
+const plugin: Plugin<Params> = {
+  manifest: {
+    name: MASTODON_INTEGRATION_NAME,
+    description: MASTODON_INTEGRATION_DESCRIPTION,
+    icon: {
+      type: "custom",
+      url: MASTODON_PLUGIN_ICON_DATA_URI,
+      backgroundColor:
+        "linear-gradient(180deg,rgba(99, 100, 255, 1) 0%, rgba(86, 58, 204, 1) 100%)",
+    },
+    author: MASTODON_INTEGRATION_AUTHOR,
+    version: MASTODON_INTEGRATION_VERSION,
   },
-  getDefaultParameters: () => ({}),
-  run: async (runRequest) => {
-    initModules(runRequest.modules);
-
-    eventManager.registerEventSource(MASTODON_EVENT_SOURCE);
-
-    registerMastodonVariables(
-      runRequest.modules.replaceVariableFactory,
-      runRequest.modules.replaceVariableManager
-    );
-
-    for (const filter of AllMastodonEventFilters) {
-      eventFilterManager.registerFilter(filter as EventFilter);
-    }
-
-    const integration: Integration<MastodonIntegrationSettings> = {
-      definition: MASTODON_INTEGRATION_DEFINITION,
-      integration: initMastodonIntegration(),
-    };
-
-    integrationManager.registerIntegration(integration);
-
-    for (const effectType of AllMastodonEffectTypes) {
-      effectType.definition.id = `${MASTODON_INTEGRATION_ID}:${effectType.definition.id}`;
-      effectManager.registerEffect(effectType as any);
-    }
+  parametersSchema: [
+    {
+      name: "instanceUrl",
+      title: "Instance Url",
+      description:
+        "The base url of your Mastodon instance, eg. mastodon.social",
+      type: "string",
+      default: "",
+    },
+    {
+      name: "accessToken",
+      title: "Access Token",
+      description:
+        "The access token for your Mastodon account, get one from the Developers section of Settings",
+      type: "password",
+      default: "",
+    },
+  ],
+  registers: {
+    effects: AllMastodonEffectTypes,
+    eventSources: [MASTODON_EVENT_SOURCE],
+    filters: AllMastodonEventFilters,
+    variables: AllMastodonReplaceVariables,
+  },
+  onLoad: async (context: PluginContext<Params>) => {
+    connectMastodonClients(context);
+  },
+  onParameterUpdate(context) {
+    connectMastodonClients(context);
+  },
+  onUnload: async () => {
+    close();
   },
 };
 
-function registerMastodonVariables(
-  replaceVariableFactory: ReplaceVariableFactory,
-  replaceVariableManager: ReplaceVariableManager
-) {
-  const mastodonVariables = [
-    ...buildMastodonProfileVariables(
-      MASTODON_USER_VARIABLE_PREFIX,
-      [
-        MastodonEvent.Follow,
-        MastodonEvent.Like,
-        MastodonEvent.Boost,
-        MastodonEvent.Mention,
-        MastodonEvent.Reply,
-        MastodonEvent.NewStatus,
-      ],
-      replaceVariableFactory
-    ),
-    ...buildMastodonPostVariables(
-      [MASTODON_STATUS_VARIABLE_PREFIX, MASTODON_POST_VARIABLE_PREFIX],
-      [
-        MastodonEvent.Like,
-        MastodonEvent.Boost,
-        MastodonEvent.Mention,
-        MastodonEvent.Reply,
-        MastodonEvent.NewStatus,
-      ],
-      replaceVariableFactory
-    ),
-  ];
-  for (const variable of mastodonVariables) {
-    replaceVariableManager.registerReplaceVariable(variable);
-  }
-}
+const connectMastodonClients = async (
+  context: PluginContext<Params>,
+): Promise<void> => {
+  close();
 
-function buildMastodonProfileVariables(
-  prefix: string | string[],
-  events: MastodonEvent[],
-  replaceVariableFactory: ReplaceVariableFactory
-) {
-  if (!Array.isArray(prefix)) {
-    prefix = [prefix];
+  if (!context.parameters.accessToken || !context.parameters.instanceUrl) {
+    firebot.logger.warn(
+      "Parameters 'accessToken' and 'instanceUrl' are required",
+    );
+    return;
   }
 
-  const profileProperties: Array<[property: string, description: string]> = [
-    [MastodonUserVariable.Handle, "The users's handle"],
-    [MastodonUserVariable.Username, "The user's username"],
-    [MastodonUserVariable.DisplayName, "The user's display name"],
-    [MastodonUserVariable.AvatarUrl, "The user's avatar URL"],
-    [MastodonUserVariable.BioHtml, "The user's bio with HTML formatting"],
-    [MastodonUserVariable.Bio, "The user's bio"],
-    [MastodonUserVariable.BannerUrl, "The user's banner URL"],
-    [MastodonUserVariable.Id, "The user's ID"],
-    [MastodonUserVariable.CreatedAt, "The user's creation date"],
-  ];
+  const { accessToken, instanceUrl } = context.parameters;
 
-  return profileProperties.map(([property, description]) =>
-    replaceVariableFactory.createEventDataVariable(
-      buildMastodonVariable(
-        prefix.map((p) => `${p}${property}`),
-        description,
-        events
-      )
-    )
+  mastodon.instanceUrl = new URL(
+    /^https?:\/\//i.test(instanceUrl) ? instanceUrl : `https://${instanceUrl}`,
   );
-}
 
-function buildMastodonPostVariables(
-  prefix: string | string[],
-  events: MastodonEvent[],
-  replaceVariableFactory: ReplaceVariableFactory
-) {
-  if (!Array.isArray(prefix)) {
-    prefix = [prefix];
+  try {
+    mastodon.restClient = createRestAPIClient({
+      url: mastodon.instanceUrl.toString(),
+      accessToken: accessToken,
+    });
+
+    // Will throw if invalid
+    const credentials =
+      await mastodon.restClient.v1.accounts.verifyCredentials();
+    mastodon.account = await mastodon.restClient.v1.accounts
+      .$select(credentials.id)
+      .fetch();
+
+    mastodon.streamingClient = createStreamingAPIClient({
+      streamingApiUrl: context.parameters.instanceUrl,
+      accessToken: context.parameters.accessToken,
+    });
+
+    hookMastodonFirebotEvents(mastodon.streamingClient);
+
+    firebot.logger.info("Successfully connected to Mastodon!");
+  } catch (error) {
+    close();
+
+    firebot.logger.error("Error connecting to Mastodon Rest client", error);
   }
+};
 
-  const postProperties: Array<[property: string, description: string]> = [
-    [MastodonStatusVariable.Text, "The status's text"],
-    [MastodonStatusVariable.Html, "The status's Html"],
-    [MastodonStatusVariable.Uri, "The status's Uri"],
-    [MastodonStatusVariable.Url, "The status's Url"],
-    [MastodonStatusVariable.Id, "The status's id"],
-    [MastodonStatusVariable.CreatedAt, "The status's creation date"],
-    [
-      MastodonStatusVariable.InReplyToId,
-      "The id of the status being replied to (or `$null` if the status is not a reply)",
-    ],
-  ];
+const close = (): void => {
+  mastodon.restClient = null;
+  mastodon.streamingClient?.close();
+  mastodon.streamingClient = null;
+  mastodon.instanceUrl = null;
+  mastodon.account = null;
+};
 
-  return [
-    ...postProperties.map(([property, description]) =>
-      replaceVariableFactory.createEventDataVariable(
-        buildMastodonVariable(
-          prefix.map((p) => `${p}${property}`),
-          description,
-          events
-        )
-      )
-    ),
-    ...buildMastodonProfileVariables(
-      [
-        MASTODON_STATUS_AUTHOR_VARIABLE_PREFIX,
-        MASTODON_POST_AUTHOR_VARIABLE_PREFIX,
-      ],
-      events,
-      replaceVariableFactory
-    ),
-  ];
-}
-
-function buildMastodonVariable(
-  eventProperty: string | string[],
-  description: string,
-  events: MastodonEvent[]
-): VariableConfig & { aliases?: string[] } {
-  if (!Array.isArray(eventProperty)) {
-    eventProperty = [eventProperty];
-  }
-
-  const mainProperty = eventProperty.shift();
-
-  return {
-    handle: mainProperty,
-    description: description,
-    events: events.map((event) => `${MASTODON_INTEGRATION_ID}:${event}`),
-    eventMetaKey: mainProperty,
-    type: "text",
-    aliases: eventProperty,
-  };
-}
-
-export default script;
+export default plugin;

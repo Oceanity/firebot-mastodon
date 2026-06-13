@@ -1,16 +1,12 @@
-import { Effects } from "@crowbartools/firebot-custom-scripts-types/types/effects";
-import { logger } from "@oceanity/firebot-helpers/firebot";
+import firebot, { EffectType } from "@crowbartools/firebot-types";
 import { getErrorMessage } from "@oceanity/firebot-helpers/string";
-import { mastodonIntegration } from "../mastodon-integration";
+import { mastodon } from "../main";
 
-type DeleteMastodonProps = {
+type EffectModel = {
   statusId: string;
 };
 
-export const DeleteMastodonStatusEffectType: Effects.EffectType<
-  DeleteMastodonProps,
-  unknown
-> = {
+export const DeleteMastodonStatusEffectType: EffectType<EffectModel> = {
   definition: {
     id: "delete-mastodon-status",
     name: "Delete Mastodon Status",
@@ -28,52 +24,31 @@ export const DeleteMastodonStatusEffectType: Effects.EffectType<
     </eos-container>
   `,
   optionsValidator: (effect) => {
+    const errors: Array<string> = [];
+
     if (!effect.statusId?.length) {
-      return ["Please enter some text to post!"];
+      errors.push("Please enter some text to post!");
     }
+
+    return errors;
   },
   onTriggerEvent: async ({ effect }) => {
-    const [valid, reason] = validateEffect(effect);
-    if (!valid) {
-      logger.debug(
-        `Unable to run Delete Mastodon Status effect: ${reason}`,
-        effect
-      );
-      return {
-        success: false,
-      };
-    }
-
-    if (!mastodonIntegration?.client) {
-      logger.error("Mastodon client not initialized");
-      return {
-        success: false,
-      };
-    }
-
-    const { statusId } = effect;
-
     try {
-      const response = await mastodonIntegration.client.deleteStatus(statusId);
+      if (!mastodon.restClient) {
+        throw new Error("Mastodon client not initialized");
+      }
+
+      await mastodon.restClient.v1.statuses.$select(effect.statusId).remove();
 
       return {
-        success: response.status === 200,
+        success: true,
       };
     } catch (error) {
-      logger.error(getErrorMessage(error), error);
+      firebot.logger.error(getErrorMessage(error), error);
+
       return {
         success: false,
       };
     }
   },
 };
-
-function validateEffect(
-  data: DeleteMastodonProps
-): [success: boolean, errorMessage?: string] {
-  if (!data.statusId?.length) {
-    return [false, "No Status Id provided"];
-  }
-
-  return [true];
-}
