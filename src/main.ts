@@ -64,20 +64,18 @@ const plugin: Plugin<Params> = {
     variables: AllMastodonReplaceVariables,
   },
   onLoad: async (context: PluginContext<Params>) => {
-    connectMastodonClients(context);
+    await connect(context);
   },
-  onParameterUpdate(context) {
-    connectMastodonClients(context);
+  onParameterUpdate: async (context) => {
+    await connect(context);
   },
   onUnload: async () => {
-    close();
+    await disconnect();
   },
 };
 
-const connectMastodonClients = async (
-  context: PluginContext<Params>,
-): Promise<void> => {
-  close();
+const connect = async (context: PluginContext<Params>): Promise<void> => {
+  disconnect();
 
   if (!context.parameters.accessToken || !context.parameters.instanceUrl) {
     firebot.logger.warn(
@@ -114,13 +112,13 @@ const connectMastodonClients = async (
 
     firebot.logger.info("Successfully connected to Mastodon!");
   } catch (error) {
-    close();
+    disconnect();
 
     firebot.logger.error("Error connecting to Mastodon Rest client", error);
   }
 };
 
-const close = (): void => {
+const disconnect = (): void => {
   mastodon.restClient = null;
   mastodon.streamingClient?.close();
   mastodon.streamingClient = null;
