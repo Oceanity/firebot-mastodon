@@ -30,6 +30,9 @@ export default defineConfig({
   },
   // No type declarations needed for a plugin bundle.
   dts: false,
+  loader: {
+    ".html": "text",
+  },
   // Fix Warning of named export in main
   outputOptions: {
     exports: "named",

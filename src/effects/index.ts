@@ -1,5 +1,5 @@
 import { EffectType } from "@crowbartools/firebot-types";
-import { DeleteMastodonStatusEffectType } from "./delete-mastodon-status";
+import { DeleteMastodonStatusEffectType } from "./delete-status";
 import { EditMastodonStatusEffectType } from "./edit-status";
 import { PostToMastodonEffectType } from "./post-to-mastodon";
 

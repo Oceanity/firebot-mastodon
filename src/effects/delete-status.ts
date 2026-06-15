@@ -1,5 +1,6 @@
 import firebot, { EffectType } from "@crowbartools/firebot-types";
 import { mastodon } from "../main";
+import optionsTemplate from "./delete-status.html";
 
 type EffectModel = {
   statusId: string;
@@ -13,15 +14,7 @@ export const DeleteMastodonStatusEffectType: EffectType<EffectModel> = {
     icon: "fad fa-trash-alt",
     categories: ["integrations"],
   },
-  optionsTemplate: `
-    <eos-container header="Status Id"> 
-      <firebot-input
-        model="effect.statusId"
-        placeholder-text="Status Id to delete"
-        style="margin-bottom: 20px;" 
-      />
-    </eos-container>
-  `,
+  optionsTemplate,
   optionsValidator: (effect) => {
     const errors: Array<string> = [];
 

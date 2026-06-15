@@ -1,6 +1,7 @@
 import firebot, { EffectType } from "@crowbartools/firebot-types";
 import { StatusVisibility } from "masto/mastodon/entities/v1/status.js";
 import { mastodon } from "../main";
+import optionsTemplate from "./post-to-mastodon.html";
 
 type EffectModel = {
   text: string;
@@ -39,33 +40,7 @@ export const PostToMastodonEffectType: EffectType<EffectModel, OverlayData> = {
       },
     ],
   },
-  optionsTemplate: `
-    <eos-container header="Text"> 
-      <firebot-input
-        model="effect.text"
-        use-text-area="true"
-        placeholder-text="Status text"
-        rows="4"
-        cols="40"
-        style="margin-bottom: 20px;" 
-      />
-      <firebot-input
-        model="effect.cw"
-        placeholder-text="Content warning"
-      />
-    </eos-container>
-    <eos-container header="Visibility" pad-top="true">
-      <div class="form-group">
-        <firebot-radio-cards
-          options="postVisibilityOptions"
-          ng-model="effect.postVisibility"
-          id="postVisibilityOptions"
-          name="postVisibilityOptions"
-          grid-columns="2"
-        ></firebot-radio-cards>
-      </div>
-    </eos-container>
-  `,
+  optionsTemplate,
   optionsController: ($scope) => {
     $scope.postVisibilityOptions = [
       {
