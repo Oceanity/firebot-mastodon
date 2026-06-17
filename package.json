@@ -14,15 +14,15 @@
   "author": "Oceanity",
   "license": "GPL-3.0",
   "devDependencies": {
-    "@crowbartools/firebot-types": "^5.67.0-alpha20",
+    "@crowbartools/firebot-types": "^5.67.0-alpha22",
     "@types/html-to-text": "^9.0.4",
     "@types/jest": "^30.0.0",
-    "@types/node": "^24.0.0",
+    "@types/node": "^24.13.2",
     "html-to-text": "^10.0.0",
     "jest": "^30.4.2",
     "masto": "^7.11.1",
     "ts-jest": "^29.4.11",
-    "tsdown": "^0.22.2",
+    "tsdown": "^0.22.3",
     "typescript": "^5.9.3"
   },
   "volta": {
