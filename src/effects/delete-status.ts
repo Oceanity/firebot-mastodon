@@ -24,6 +24,9 @@ export const DeleteMastodonStatusEffectType: EffectType<EffectModel> = {
 
     return errors;
   },
+  getDefaultLabel: (effect) => {
+    return `Deleting Status: ${effect.statusId}`;
+  },
   onTriggerEvent: async ({ effect }) => {
     try {
       if (!mastodon.restClient) {

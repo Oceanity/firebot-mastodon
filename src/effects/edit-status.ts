@@ -29,10 +29,10 @@ export const EditMastodonStatusEffectType: EffectType<
     if (!effect.statusId) {
       errors.push("Please enter a Status Id to edit!");
     }
-    if (!effect.text?.length) {
-      errors.push("Please enter some text to post!");
-    }
     return errors;
+  },
+  getDefaultLabel: (effect) => {
+    return `Editing Status: ${effect.statusId}`;
   },
   onTriggerEvent: async ({ effect }) => {
     try {

@@ -78,6 +78,12 @@ export const PostToMastodonEffectType: EffectType<EffectModel, OverlayData> = {
 
     return errors;
   },
+  getDefaultLabel: (effect) => {
+    const visibility = effect.postVisibility
+      ? `${effect.postVisibility.substring(0, 1).toLocaleUpperCase()}${effect.postVisibility.substring(1)} `
+      : "";
+    return `Posting ${visibility}Status: ${effect.text}`;
+  },
   onTriggerEvent: async ({ effect }) => {
     try {
       if (!mastodon.restClient) {

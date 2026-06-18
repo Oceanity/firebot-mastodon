@@ -28,8 +28,13 @@ export const hookMastodonFirebotEvents = async (
         handleUpdatePayload(event.payload);
         break;
 
+      case "status.update":
+        // TODO: Handle edit
+        break;
+
       case "delete":
         handleDeletePayload(event.payload);
+        break;
 
       default:
         firebot.logger.info(`Unhandled Event:\n${JSON.stringify(event)}`);
