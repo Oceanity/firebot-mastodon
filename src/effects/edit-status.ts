@@ -12,10 +12,7 @@ type OverlayData = {
   statusUri: string;
 };
 
-export const EditMastodonStatusEffectType: EffectType<
-  EffectModel,
-  OverlayData
-> = {
+export const EditMastodonStatusEffect: EffectType<EffectModel, OverlayData> = {
   definition: {
     id: "edit-mastodon-status",
     name: "Edit Mastodon Status",

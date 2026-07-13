@@ -15,7 +15,7 @@ type OverlayData = {
   statusUrl: string;
 };
 
-export const PostToMastodonEffectType: EffectType<EffectModel, OverlayData> = {
+export const PostToMastodonEffect: EffectType<EffectModel, OverlayData> = {
   definition: {
     id: "post-to-mastodon",
     name: "Post to Mastodon",

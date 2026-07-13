@@ -9,7 +9,7 @@ import {
   MASTODON_PLUGIN_NAME,
   MASTODON_PLUGIN_VERSION,
 } from "./constants";
-import { AllMastodonEffectTypes } from "./effects";
+import { AllMastodonEffects } from "./effects";
 import { hookMastodonFirebotEvents } from "./event-handler";
 import { AllMastodonEventFilters } from "./filters";
 import { AllMastodonReplaceVariables } from "./replace-variables";
@@ -59,7 +59,7 @@ const plugin: Plugin<Params> = {
     },
   ],
   registers: {
-    effects: AllMastodonEffectTypes,
+    effects: AllMastodonEffects,
     eventSources: [MASTODON_EVENT_SOURCE],
     filters: AllMastodonEventFilters,
     variables: AllMastodonReplaceVariables,

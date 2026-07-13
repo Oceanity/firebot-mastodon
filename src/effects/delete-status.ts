@@ -6,7 +6,7 @@ type EffectModel = {
   statusId: string;
 };
 
-export const DeleteMastodonStatusEffectType: EffectType<EffectModel> = {
+export const DeleteMastodonStatusEffect: EffectType<EffectModel> = {
   definition: {
     id: "delete-mastodon-status",
     name: "Delete Mastodon Status",
