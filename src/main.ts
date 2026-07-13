@@ -38,6 +38,7 @@ const plugin: Plugin<Params> = {
     },
     author: MASTODON_PLUGIN_AUTHOR,
     version: MASTODON_PLUGIN_VERSION,
+    repo: "https://github.com/Oceanity/firebot-mastodon",
   },
   parametersSchema: [
     {
