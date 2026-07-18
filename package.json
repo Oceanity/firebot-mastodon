@@ -18,12 +18,14 @@
     "@types/html-to-text": "^9.0.4",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.20.1",
+    "@types/ws": "^8.18.1",
     "html-to-text": "^10.0.0",
     "jest": "^30.4.2",
     "masto": "^7.12.0",
     "ts-jest": "^29.4.11",
-    "tsdown": "^0.22.7",
-    "typescript": "^5.9.3"
+    "tsdown": "^0.22.9",
+    "typescript": "^5.9.3",
+    "ws": "^8.21.1"
   },
   "volta": {
     "node": "24.10.0"

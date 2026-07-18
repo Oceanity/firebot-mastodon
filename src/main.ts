@@ -1,16 +1,19 @@
 import firebot, { Plugin, PluginContext } from "@crowbartools/firebot-types";
 import { createRestAPIClient, createStreamingAPIClient } from "masto";
+import WebSocket from "ws";
 
 import {
-  MASTODON_EVENT_SOURCE,
   MASTODON_PLUGIN_AUTHOR,
   MASTODON_PLUGIN_DESCRIPTION,
+  MASTODON_PLUGIN_ICON_BACKGROUND,
   MASTODON_PLUGIN_ICON_DATA_URI,
   MASTODON_PLUGIN_NAME,
+  MASTODON_PLUGIN_REPO_URL,
   MASTODON_PLUGIN_VERSION,
 } from "./constants";
 import { AllMastodonEffects } from "./effects";
 import { hookMastodonFirebotEvents } from "./event-handler";
+import { MastodonPluginEventSource } from "./event-source";
 import { AllMastodonEventFilters } from "./filters";
 import { AllMastodonReplaceVariables } from "./replace-variables";
 import { MastodonState } from "./types";
@@ -34,11 +37,11 @@ const plugin: Plugin<Params> = {
     icon: {
       type: "custom",
       url: MASTODON_PLUGIN_ICON_DATA_URI,
-      backgroundColor: "linear-gradient(180deg,#6364ff,#563acc)",
+      backgroundColor: MASTODON_PLUGIN_ICON_BACKGROUND,
     },
     author: MASTODON_PLUGIN_AUTHOR,
     version: MASTODON_PLUGIN_VERSION,
-    repo: "https://github.com/Oceanity/firebot-mastodon",
+    repo: MASTODON_PLUGIN_REPO_URL,
   },
   parametersSchema: [
     {
@@ -60,7 +63,7 @@ const plugin: Plugin<Params> = {
   ],
   registers: {
     effects: AllMastodonEffects,
-    eventSources: [MASTODON_EVENT_SOURCE],
+    eventSources: [MastodonPluginEventSource],
     filters: AllMastodonEventFilters,
     variables: AllMastodonReplaceVariables,
   },
@@ -105,8 +108,9 @@ const connect = async (context: PluginContext<Params>): Promise<void> => {
       .fetch();
 
     mastodon.streamingClient = createStreamingAPIClient({
-      streamingApiUrl: context.parameters.instanceUrl,
-      accessToken: context.parameters.accessToken,
+      streamingApiUrl: mastodon.instanceUrl.toString(),
+      accessToken: accessToken,
+      implementation: WebSocket,
     });
 
     hookMastodonFirebotEvents(mastodon.streamingClient);
