@@ -8,7 +8,8 @@ import {
 import { getMastodonEventSourceAndId } from "../utils/mastodon-helpers";
 
 export const InReplyToIdEventFilter: EventFilter =
-  firebot.eventFilterFactory.createTextFilter({
+  //@ts-expect-error(2339)
+  firebot.factories.eventFilters.createTextFilter({
     id: MastodonFilter.InReplyToId,
     name: "In Reply To Id",
     description:

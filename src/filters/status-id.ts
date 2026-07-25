@@ -8,7 +8,8 @@ import {
 import { getMastodonEventSourceAndId } from "../utils/mastodon-helpers";
 
 export const StatusIdEventFilter: EventFilter =
-  firebot.eventFilterFactory.createTextFilter({
+  //@ts-expect-error(2339)
+  firebot.factories.eventFilters.createTextFilter({
     id: MastodonFilter.StatusId,
     name: "Status Id",
     description: "Filter by the id of the associated Mastodon status",

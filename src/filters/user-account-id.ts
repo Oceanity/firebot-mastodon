@@ -4,7 +4,8 @@ import { MastodonEvent, MastodonFilter, MastodonUserVariable } from "../types";
 import { getMastodonEventSourceAndId } from "../utils/mastodon-helpers";
 
 export const UserIdEventFilter: EventFilter =
-  firebot.eventFilterFactory.createTextFilter({
+  //@ts-expect-error(2339)
+  firebot.factories.eventFilters.createTextFilter({
     id: MastodonFilter.UserAccountId,
     name: "Account Id",
     description: "Filter by the id of the associated Mastodon account",
