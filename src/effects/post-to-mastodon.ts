@@ -1,20 +1,21 @@
-import { Effects } from "@crowbartools/firebot-custom-scripts-types/types/effects";
-import { logger } from "@oceanity/firebot-helpers/firebot";
-import { getErrorMessage } from "@oceanity/firebot-helpers/string";
-import { Entity } from "megalodon";
-import { mastodonIntegration } from "../mastodon-integration";
+import firebot, { EffectType } from "@crowbartools/firebot-types";
+import { StatusVisibility } from "masto/mastodon/entities/v1/status.js";
+import { mastodon } from "../main";
+import optionsTemplate from "./post-to-mastodon.html";
 
-type PostToMastodonProps = {
+type EffectModel = {
   text: string;
   cw?: string;
-  postVisibility?: Entity.StatusVisibility;
+  postVisibility?: StatusVisibility;
 };
 
-export const PostToMastodonEffectType: Effects.EffectType<
-  PostToMastodonProps,
-  unknown,
-  { statusUri: string }
-> = {
+type OverlayData = {
+  statusId: string;
+  statusUri: string;
+  statusUrl: string;
+};
+
+export const PostToMastodonEffect: EffectType<EffectModel, OverlayData> = {
   definition: {
     id: "post-to-mastodon",
     name: "Post to Mastodon",
@@ -23,39 +24,23 @@ export const PostToMastodonEffectType: Effects.EffectType<
     categories: ["integrations"],
     outputs: [
       {
+        label: "Post Id",
+        description: "The Id of the post",
+        defaultName: "statusId",
+      },
+      {
         label: "Post Uri",
-        description: "The URI of the post",
+        description: "The Uri of the post",
         defaultName: "statusUri",
+      },
+      {
+        label: "Post Url",
+        description: "The Url of the post",
+        defaultName: "statusUrl",
       },
     ],
   },
-  optionsTemplate: `
-    <eos-container header="Text"> 
-      <firebot-input
-        model="effect.text"
-        use-text-area="true"
-        placeholder-text="Status text"
-        rows="4"
-        cols="40"
-        style="margin-bottom: 20px;" 
-      />
-      <firebot-input
-        model="effect.cw"
-        placeholder-text="Content warning"
-      />
-    </eos-container>
-    <eos-container header="Visibility" pad-top="true">
-      <div class="form-group">
-        <firebot-radio-cards
-          options="postVisibilityOptions"
-          ng-model="effect.postVisibility"
-          id="postVisibilityOptions"
-          name="postVisibilityOptions"
-          grid-columns="2"
-        ></firebot-radio-cards>
-      </div>
-    </eos-container>
-  `,
+  optionsTemplate,
   optionsController: ($scope) => {
     $scope.postVisibilityOptions = [
       {
@@ -85,55 +70,45 @@ export const PostToMastodonEffectType: Effects.EffectType<
     ];
   },
   optionsValidator: (effect) => {
+    const errors: Array<string> = [];
+
     if (!effect.text?.length) {
-      return ["Please enter some text to post!"];
+      errors.push("Please enter some text to post!");
     }
+
+    return errors;
+  },
+  getDefaultLabel: (effect) => {
+    const visibility = effect.postVisibility
+      ? `${effect.postVisibility.substring(0, 1).toLocaleUpperCase()}${effect.postVisibility.substring(1)} `
+      : "";
+    return `Posting ${visibility}Status: ${effect.text}`;
   },
   onTriggerEvent: async ({ effect }) => {
-    const [valid, reason] = validateEffect(effect);
-    if (!valid) {
-      logger.debug(`Unable to run Post To Mastodon effect: ${reason}`, effect);
-      return {
-        success: false,
-      };
-    }
-
-    if (!mastodonIntegration?.client) {
-      logger.error("Mastodon client not initialized");
-      return {
-        success: false,
-      };
-    }
-
     try {
-      const status = (
-        await mastodonIntegration.client.postStatus(effect.text, {
-          visibility: effect.postVisibility,
-          spoiler_text: effect.cw,
-        })
-      ).data as Entity.Status;
+      if (!mastodon.restClient) {
+        throw new Error("Mastodon client not initialized");
+      }
+
+      const status = await mastodon.restClient.v1.statuses.create({
+        status: effect.text,
+        visibility: effect.postVisibility,
+        spoilerText: effect.cw,
+      });
 
       return {
         success: true,
         outputs: {
+          statusId: status.id,
           statusUri: status.uri,
+          statusUrl: status.url,
         },
       };
     } catch (error) {
-      logger.error(getErrorMessage(error), error);
+      firebot.logger.error("Could not post status", error);
       return {
         success: false,
       };
     }
   },
 };
-
-function validateEffect(
-  data: PostToMastodonProps
-): [success: boolean, errorMessage?: string] {
-  if (!data.text?.length) {
-    return [false, "No text provided"];
-  }
-
-  return [true];
-}
