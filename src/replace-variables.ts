@@ -19,7 +19,6 @@ import {
 
 // One-offs
 const mastodonDeletedStatusId: ReplaceVariable =
-  //@ts-expect-error(2339)
   firebot.factories.variables.createEventDataVariable({
     handle: MASTODON_DELETE_VARIABLE,
     description: "The id of the status that was deleted",
@@ -72,7 +71,6 @@ function buildMastodonProfileVariables(
   ];
 
   return profileProperties.map(([property, description]) =>
-    //@ts-expect-error(2339)
     firebot.factories.variables.createEventDataVariable(
       buildMastodonVariable(
         prefix.map((p) => `${p}${property}`),
@@ -106,7 +104,6 @@ function buildMastodonPostVariables(
 
   return [
     ...postProperties.map(([property, description]) =>
-      //@ts-expect-error(2339)
       firebot.factories.variables.createEventDataVariable(
         buildMastodonVariable(
           prefix.map((p) => `${p}${property}`),
